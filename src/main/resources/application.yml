@@ -10,24 +10,10 @@ spring:
     password: 4t4wYUhTi@!-W9Z
     driver-class-name: org.postgresql.Driver
     hikari:
-      maximum-pool-size: 10
+      maximum-pool-size: 5
       connection-timeout: 30000
-      idle-timeout: 600000
-      max-lifetime: 1800000
-  mail:
-    host: ${MAIL_HOST:smtp.gmail.com}
-    port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME:itsrohitsalunke09@gmail.com}
-    password: ${MAIL_PASSWORD:mimn fujv cgoo rxfe}
-    properties:
-      mail:
-        smtp:
-          auth: true
-          starttls:
-            enable: true
-          connectiontimeout: 5000
-          timeout: 5000
-          writetimeout: 5000
+      idle-timeout: 300000
+      max-lifetime: 900000
   jpa:
     hibernate:
       ddl-auto: update
