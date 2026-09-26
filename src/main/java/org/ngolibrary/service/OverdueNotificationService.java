@@ -23,12 +23,10 @@ public class OverdueNotificationService {
 
     private final BookIssueRepository issueRepository;
     private final WhatsAppService whatsAppService;
-    private final EmailService emailService;
 
-    public OverdueNotificationService(BookIssueRepository issueRepository, WhatsAppService whatsAppService, EmailService emailService) {
+    public OverdueNotificationService(BookIssueRepository issueRepository, WhatsAppService whatsAppService) {
         this.issueRepository = issueRepository;
         this.whatsAppService = whatsAppService;
-        this.emailService = emailService;
     }
 
     @Scheduled(cron = "${app.whatsapp.cron:0 0 9 * * *}")
@@ -45,7 +43,6 @@ public class OverdueNotificationService {
         for (BookIssue issue : overdueIssues) {
             if (shouldSendNotification(issue, today)) {
                 String phone = issue.getStudent().getPhone();
-                String email = issue.getStudent().getEmail();
                 boolean hasContact = false;
 
                 if (phone != null && !phone.trim().isEmpty()) {
@@ -58,24 +55,13 @@ public class OverdueNotificationService {
                     hasContact = true;
                 }
 
-                if (email != null && !email.trim().isEmpty()) {
-                    emailService.sendOverdueNotification(
-                        email,
-                        issue.getStudent().getFullName(),
-                        issue.getBook().getTitle(),
-                        issue.getDueDate().toString()
-                    );
-                    hasContact = true;
-                }
-
                 if (hasContact) {
                     issue.setLastOverdueNotificationDate(today);
                     issueRepository.save(issue);
                     sentCount++;
-                    log.info("Sent overdue notification for issue {} (phone: {}, email: {})", 
-                        issue.getId(), phone != null ? "yes" : "no", email != null ? "yes" : "no");
+                    log.info("Sent overdue notification for issue {} (phone: yes)", issue.getId());
                 } else {
-                    log.warn("Student {} has no phone or email for overdue notification", issue.getStudent().getUsername());
+                    log.warn("Student {} has no phone for overdue notification", issue.getStudent().getUsername());
                 }
             } else {
                 log.debug("Skipping notification for issue {} - last sent on {}, next due on {}", 
@@ -108,7 +94,6 @@ public class OverdueNotificationService {
 
         for (BookIssue issue : dueSoonIssues) {
             String phone = issue.getStudent().getPhone();
-            String email = issue.getStudent().getEmail();
             boolean hasContact = false;
 
             if (phone != null && !phone.trim().isEmpty()) {
@@ -125,44 +110,19 @@ public class OverdueNotificationService {
                 }
             }
 
-            if (email != null && !email.trim().isEmpty()) {
-                int daysLeft = (int) java.time.temporal.ChronoUnit.DAYS.between(today, issue.getDueDate());
-                if (daysLeft >= 0 && daysLeft <= 2) {
-                    emailService.sendDueSoonNotification(
-                        email,
-                        issue.getStudent().getFullName(),
-                        issue.getBook().getTitle(),
-                        issue.getDueDate().toString(),
-                        daysLeft
-                    );
-                    hasContact = true;
-                }
-            }
-
             if (!hasContact) {
-                log.debug("Student {} has no phone or email for due-soon notification", issue.getStudent().getUsername());
+                log.debug("Student {} has no phone for due-soon notification", issue.getStudent().getUsername());
             }
         }
     }
 
     public void notifyForIssue(BookIssue issue) {
         String phone = issue.getStudent().getPhone();
-        String email = issue.getStudent().getEmail();
         boolean hasContact = false;
 
         if (phone != null && !phone.trim().isEmpty()) {
             whatsAppService.sendOverdueNotification(
                 phone,
-                issue.getStudent().getFullName(),
-                issue.getBook().getTitle(),
-                issue.getDueDate().toString()
-            );
-            hasContact = true;
-        }
-
-        if (email != null && !email.trim().isEmpty()) {
-            emailService.sendOverdueNotification(
-                email,
                 issue.getStudent().getFullName(),
                 issue.getBook().getTitle(),
                 issue.getDueDate().toString()
