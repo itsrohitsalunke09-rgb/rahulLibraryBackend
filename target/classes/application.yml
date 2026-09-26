@@ -46,7 +46,7 @@ app:
     expiration-ms: 86400000
 
   email:
-    enabled: true
+    enabled: false
     from: noreply@ngolibrary.org
     from-name: Pathshala Library
 
@@ -64,3 +64,9 @@ app:
     custom:
       api-url: ${WHATSAPP_CUSTOM_API_URL:}
       api-key: ${WHATSAPP_CUSTOM_API_KEY:}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
