@@ -1,5 +1,3 @@
-cd D:\cursor\ngo-library\backend
-
 # Delete the corrupted file
 del Dockerfile
 
