@@ -57,13 +57,13 @@ public class UserController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN')")
     public UserResponse create(@Valid @RequestBody UserRequest request) {
         return userService.create(request);
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN')")
     public UserResponse update(@PathVariable Long id, @Valid @RequestBody UserRequest request) {
         return userService.update(id, request);
     }
