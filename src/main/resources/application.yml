@@ -32,6 +32,9 @@ app:
     secret: NGOLibrarySecretKeyThatIsLongEnoughForHS256SigningAlg
     expiration-ms: 86400000
 
+  cors:
+    allowed-origins: "http://localhost:4200,http://127.0.0.1:4200,https://rahullibraryshindewadi.vercel.app"
+
   email:
     enabled: false
     from: noreply@ngolibrary.org
