@@ -77,6 +77,13 @@ public class IssueController {
         return issueService.mine(student);
     }
 
+    @GetMapping("/issues/mine")
+    @PreAuthorize("hasRole('STUDENT')")
+    public Page<IssueResponse> minePaged(Pageable pageable, Authentication authentication) {
+        UserAccount student = authService.current(authentication.getName());
+        return issueService.minePaged(student, pageable);
+    }
+
     @PostMapping("/issues")
     @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN')")
     public IssueResponse issue(@Valid @RequestBody IssueRequest request, Authentication authentication) {

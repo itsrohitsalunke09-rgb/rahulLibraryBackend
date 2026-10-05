@@ -4,14 +4,12 @@ org\ngolibrary\web\AuthController.class
 org\ngolibrary\domain\UserAccount.class
 org\ngolibrary\service\WhatsAppServiceImpl.class
 org\ngolibrary\config\DataSeeder.class
-org\ngolibrary\service\EmailServiceImpl.class
 org\ngolibrary\domain\Book.class
 org\ngolibrary\dto\IssueRequest.class
 org\ngolibrary\domain\Role.class
 org\ngolibrary\web\BookController.class
 org\ngolibrary\web\IssueController.class
 org\ngolibrary\web\UserController.class
-org\ngolibrary\service\EmailService.class
 org\ngolibrary\security\SecurityConfig.class
 org\ngolibrary\web\RestExceptionHandler.class
 org\ngolibrary\dto\ProfileUpdateRequest.class

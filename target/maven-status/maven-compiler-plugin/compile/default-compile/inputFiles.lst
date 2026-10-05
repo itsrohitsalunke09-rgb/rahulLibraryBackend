@@ -6,7 +6,6 @@ D:\cursor\ngo-library\backend\src\main\java\org\ngolibrary\service\BookImportSer
 D:\cursor\ngo-library\backend\src\main\java\org\ngolibrary\security\JwtAuthFilter.java
 D:\cursor\ngo-library\backend\src\main\java\org\ngolibrary\web\BookController.java
 D:\cursor\ngo-library\backend\src\main\java\org\ngolibrary\service\BookService.java
-D:\cursor\ngo-library\backend\src\main\java\org\ngolibrary\service\EmailService.java
 D:\cursor\ngo-library\backend\src\main\java\org\ngolibrary\domain\UserAccount.java
 D:\cursor\ngo-library\backend\src\main\java\org\ngolibrary\repo\UserAccountRepository.java
 D:\cursor\ngo-library\backend\src\main\java\org\ngolibrary\dto\ApiMessage.java
@@ -17,7 +16,6 @@ D:\cursor\ngo-library\backend\src\main\java\org\ngolibrary\service\OverdueNotifi
 D:\cursor\ngo-library\backend\src\main\java\org\ngolibrary\dto\BookRequest.java
 D:\cursor\ngo-library\backend\src\main\java\org\ngolibrary\security\AppUserDetailsService.java
 D:\cursor\ngo-library\backend\src\main\java\org\ngolibrary\dto\DashboardResponse.java
-D:\cursor\ngo-library\backend\src\main\java\org\ngolibrary\service\EmailServiceImpl.java
 D:\cursor\ngo-library\backend\src\main\java\org\ngolibrary\repo\BookRepository.java
 D:\cursor\ngo-library\backend\src\main\java\org\ngolibrary\service\BookImportServiceImpl.java
 D:\cursor\ngo-library\backend\src\main\java\org\ngolibrary\dto\RegistrationRequest.java

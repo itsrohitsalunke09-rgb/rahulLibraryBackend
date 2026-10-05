@@ -122,6 +122,11 @@ public class IssueService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    public Page<IssueResponse> minePaged(UserAccount student, Pageable pageable) {
+        return issues.findByStudentOrderByIssueDateDesc(student, pageable).map(IssueResponse::from);
+    }
+
     @Transactional
     public IssueResponse issue(IssueRequest request, UserAccount librarian) {
         Book book = books.findById(request.getBookId())
