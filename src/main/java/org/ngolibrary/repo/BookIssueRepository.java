@@ -15,6 +15,9 @@ import org.springframework.data.repository.query.Param;
 
 public interface BookIssueRepository extends JpaRepository<BookIssue, Long> {
     List<BookIssue> findByStudentOrderByIssueDateDesc(UserAccount student);
+
+    @Query("SELECT bi FROM BookIssue bi WHERE bi.student = :student ORDER BY bi.issueDate DESC")
+    Page<BookIssue> findByStudentOrderByIssueDateDesc(@Param("student") UserAccount student, Pageable pageable);
     List<BookIssue> findByStatus(IssueStatus status);
     List<BookIssue> findByStatusAndDueDateBefore(IssueStatus status, LocalDate date);
     long countByStatus(IssueStatus status);
