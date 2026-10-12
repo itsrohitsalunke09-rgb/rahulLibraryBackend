@@ -25,4 +25,14 @@ public interface BookRepository extends JpaRepository<Book, Long> {
     Page<Book> searchPaged(@Param("q") String q, Pageable pageable);
 
     Page<Book> findAll(Pageable pageable);
+
+    @Query("SELECT count(b) as titles, coalesce(sum(b.totalCopies), 0) as totalCopies, "
+            + "coalesce(sum(b.availableCopies), 0) as availableCopies FROM Book b")
+    Totals totals();
+
+    interface Totals {
+        long getTitles();
+        long getTotalCopies();
+        long getAvailableCopies();
+    }
 }

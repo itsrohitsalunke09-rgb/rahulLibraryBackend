@@ -94,9 +94,11 @@ public class IssueService {
             long total = issues.countByBookTitleOrStudentName(q.trim());
             return Map.of("all", total, "issued", 0L, "overdue", 0L, "returned", 0L);
         }
-        long issued = issues.countByStatusAndDueDateAfterOrEqual(IssueStatus.ISSUED, LocalDate.now());
-        long overdue = issues.countByStatusAndDueDateBefore(IssueStatus.ISSUED, LocalDate.now());
-        long returned = issues.countByStatus(IssueStatus.RETURNED);
+        BookIssueRepository.StatusCounts statusCounts =
+                issues.statusCounts(IssueStatus.ISSUED, IssueStatus.RETURNED, LocalDate.now());
+        long issued = statusCounts.getIssued();
+        long overdue = statusCounts.getOverdue();
+        long returned = statusCounts.getReturned();
         return Map.of(
             "all", issued + overdue + returned,
             "issued", issued,
@@ -174,16 +176,18 @@ public class IssueService {
         return IssueResponse.from(issues.save(issue));
     }
 
+    @Transactional(readOnly = true)
     public DashboardResponse dashboard() {
-        List<Book> allBooks = books.findAll();
-        long titles = allBooks.size();
-        long totalCopies = allBooks.stream().mapToLong(Book::getTotalCopies).sum();
-        long available = allBooks.stream().mapToLong(Book::getAvailableCopies).sum();
-        long issued = issues.countByStatus(IssueStatus.ISSUED);
-        long overdue = issues.findByStatusAndDueDateBefore(IssueStatus.ISSUED, LocalDate.now()).size();
-        long students = users.findByRole(Role.STUDENT).size();
-        long librarians = users.findByRole(Role.LIBRARIAN).size();
-        return new DashboardResponse(titles, totalCopies, available, issued, overdue, students, librarians);
+        BookRepository.Totals totals = books.totals();
+        BookIssueRepository.StatusCounts statusCounts =
+                issues.statusCounts(IssueStatus.ISSUED, IssueStatus.RETURNED, LocalDate.now());
+        long overdue = statusCounts.getOverdue();
+        // "Issued" on the dashboard means every copy currently out, overdue included
+        long issued = statusCounts.getIssued() + overdue;
+        long students = users.countByRole(Role.STUDENT);
+        long librarians = users.countByRole(Role.LIBRARIAN);
+        return new DashboardResponse(totals.getTitles(), totals.getTotalCopies(), totals.getAvailableCopies(),
+                issued, overdue, students, librarians);
     }
 
     @Transactional(readOnly = true)

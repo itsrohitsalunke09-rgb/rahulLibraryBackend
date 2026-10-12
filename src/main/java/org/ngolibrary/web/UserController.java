@@ -52,26 +52,29 @@ public class UserController {
     @GetMapping("/profile")
     @PreAuthorize("isAuthenticated()")
     public UserResponse getProfile(Authentication authentication) {
-        UserAccount currentUser = authService.current(authentication.getName());
+        UserAccount currentUser = authService.current(authentication);
         return UserResponse.from(currentUser);
     }
 
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN')")
-    public UserResponse create(@Valid @RequestBody UserRequest request) {
-        return userService.create(request);
+    public UserResponse create(@Valid @RequestBody UserRequest request, Authentication authentication) {
+        UserAccount currentUser = authService.current(authentication);
+        return userService.create(request, currentUser);
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN')")
-    public UserResponse update(@PathVariable Long id, @Valid @RequestBody UserRequest request) {
-        return userService.update(id, request);
+    public UserResponse update(@PathVariable Long id, @Valid @RequestBody UserRequest request,
+                               Authentication authentication) {
+        UserAccount currentUser = authService.current(authentication);
+        return userService.update(id, request, currentUser);
     }
 
     @PutMapping("/profile")
     @PreAuthorize("isAuthenticated()")
     public UserResponse updateProfile(@Valid @RequestBody ProfileUpdateRequest request, Authentication authentication) {
-        UserAccount currentUser = authService.current(authentication.getName());
+        UserAccount currentUser = authService.current(authentication);
         return userService.updateProfile(currentUser.getId(), request);
     }
 

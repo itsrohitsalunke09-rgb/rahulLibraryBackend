@@ -48,7 +48,8 @@ public class UserService {
         return users.searchStudents(q).stream().map(UserResponse::from).collect(Collectors.toList());
     }
 
-    public UserResponse create(UserRequest request) {
+    public UserResponse create(UserRequest request, UserAccount currentUser) {
+        checkCanAssignRole(currentUser, request.getRole());
         if (users.existsByUsername(request.getUsername())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Username already exists");
         }
@@ -60,14 +61,24 @@ public class UserService {
         return UserResponse.from(users.save(user));
     }
 
-    public UserResponse update(Long id, UserRequest request) {
+    public UserResponse update(Long id, UserRequest request, UserAccount currentUser) {
         UserAccount user = users.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        if (currentUser.getRole() != Role.ADMIN && user.getRole() == Role.ADMIN) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only an admin can edit admin accounts");
+        }
+        checkCanAssignRole(currentUser, request.getRole());
         if (!user.getUsername().equals(request.getUsername()) && users.existsByUsername(request.getUsername())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Username already exists");
         }
         apply(user, request, false);
         return UserResponse.from(users.save(user));
+    }
+
+    private void checkCanAssignRole(UserAccount currentUser, Role role) {
+        if (currentUser.getRole() != Role.ADMIN && role == Role.ADMIN) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only an admin can assign the admin role");
+        }
     }
 
     private void apply(UserAccount user, UserRequest request, boolean creating) {

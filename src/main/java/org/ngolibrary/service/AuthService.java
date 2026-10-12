@@ -6,7 +6,9 @@ import org.ngolibrary.dto.AuthResponse;
 import org.ngolibrary.dto.LoginRequest;
 import org.ngolibrary.dto.RegistrationRequest;
 import org.ngolibrary.repo.UserAccountRepository;
+import org.ngolibrary.security.AppUserPrincipal;
 import org.ngolibrary.security.JwtService;
+import org.springframework.security.core.Authentication;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -33,6 +35,14 @@ public class AuthService {
         }
         return new AuthResponse(jwtService.generate(user), user.getId(), user.getUsername(),
                 user.getFullName(), user.getRole());
+    }
+
+    /** The logged-in user, reusing the account the JWT filter already loaded for this request. */
+    public UserAccount current(Authentication authentication) {
+        if (authentication.getPrincipal() instanceof AppUserPrincipal) {
+            return ((AppUserPrincipal) authentication.getPrincipal()).getAccount();
+        }
+        return current(authentication.getName());
     }
 
     public UserAccount current(String username) {

@@ -2,6 +2,7 @@ D:\cursor\ngo-library\backend\src\main\java\org\ngolibrary\security\SecurityConf
 D:\cursor\ngo-library\backend\src\main\java\org\ngolibrary\service\UserService.java
 D:\cursor\ngo-library\backend\src\main\java\org\ngolibrary\web\AuthController.java
 D:\cursor\ngo-library\backend\src\main\java\org\ngolibrary\domain\BookIssue.java
+D:\cursor\ngo-library\backend\src\main\java\org\ngolibrary\security\AppUserPrincipal.java
 D:\cursor\ngo-library\backend\src\main\java\org\ngolibrary\service\BookImportService.java
 D:\cursor\ngo-library\backend\src\main\java\org\ngolibrary\security\JwtAuthFilter.java
 D:\cursor\ngo-library\backend\src\main\java\org\ngolibrary\web\BookController.java

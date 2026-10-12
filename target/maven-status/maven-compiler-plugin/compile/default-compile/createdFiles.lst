@@ -2,8 +2,10 @@ org\ngolibrary\dto\IssueResponse.class
 org\ngolibrary\domain\BookIssue.class
 org\ngolibrary\web\AuthController.class
 org\ngolibrary\domain\UserAccount.class
+org\ngolibrary\security\AppUserPrincipal.class
 org\ngolibrary\service\WhatsAppServiceImpl.class
 org\ngolibrary\config\DataSeeder.class
+org\ngolibrary\repo\BookIssueRepository$StatusCounts.class
 org\ngolibrary\domain\Book.class
 org\ngolibrary\dto\IssueRequest.class
 org\ngolibrary\domain\Role.class
@@ -34,6 +36,7 @@ org\ngolibrary\service\BookImportServiceImpl.class
 org\ngolibrary\service\BookImportService.class
 org\ngolibrary\service\BookImportServiceImpl$1.class
 org\ngolibrary\repo\BookIssueRepository.class
+org\ngolibrary\repo\BookRepository$Totals.class
 org\ngolibrary\security\JwtAuthFilter.class
 org\ngolibrary\service\UserService.class
 org\ngolibrary\dto\UserResponse.class

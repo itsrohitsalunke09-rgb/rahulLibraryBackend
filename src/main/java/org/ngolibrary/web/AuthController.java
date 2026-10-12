@@ -38,7 +38,7 @@ public class AuthController {
 
     @GetMapping("/me")
     public UserResponse me(Authentication authentication) {
-        UserAccount user = authService.current(authentication.getName());
+        UserAccount user = authService.current(authentication);
         return UserResponse.from(user);
     }
 
