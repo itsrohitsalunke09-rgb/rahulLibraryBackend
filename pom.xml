@@ -18,8 +18,10 @@
     <description>Library issue and return system for an NGO</description>
 
     <properties>
-        <java.version>17</java.version>
+        <java.version>21</java.version>
         <jjwt.version>0.11.5</jjwt.version>
+        <!-- Spring Boot 2.7 ships Byte Buddy 1.12 (supports up to Java 20); Hibernate's proxies need a Java 21-aware version -->
+        <byte-buddy.version>1.14.19</byte-buddy.version>
     </properties>
 
     <dependencies>
