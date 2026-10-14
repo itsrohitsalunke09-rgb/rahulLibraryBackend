@@ -6,9 +6,11 @@ spring:
   application:
     name: ngo-library-api
   datasource:
-    url: jdbc:postgresql://aws-0-ap-south-1.pooler.supabase.com:6543/postgres?sslmode=require&pgbouncer=true&prepareThreshold=0
-    username: postgres.eviwctkgjxqqfpserniz
-    password: 4t4wYUhTi@!-W9Z
+    # Set DB_URL, DB_USERNAME and DB_PASSWORD in the environment (Render dashboard),
+    # or locally in config/application.yml (gitignored, see config/application.example.yml).
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 5
@@ -29,7 +31,8 @@ spring:
 
 app:
   jwt:
-    secret: NGOLibrarySecretKeyThatIsLongEnoughForHS256SigningAlg
+    # Set JWT_SECRET (at least 32 characters) in the environment or config/application.yml.
+    secret: ${JWT_SECRET}
     expiration-ms: 86400000
 
   cors:

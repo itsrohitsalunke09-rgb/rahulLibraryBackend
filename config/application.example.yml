@@ -1,0 +1,11 @@
+# Copy to config/application.yml (gitignored) for local runs, or set the matching
+# environment variables (DB_URL, DB_USERNAME, DB_PASSWORD, JWT_SECRET) on Render.
+spring:
+  datasource:
+    url: jdbc:postgresql://<host>:6543/postgres?sslmode=require&pgbouncer=true&prepareThreshold=0
+    username: <db-user>
+    password: <db-password>
+
+app:
+  jwt:
+    secret: <random string, at least 32 characters>
