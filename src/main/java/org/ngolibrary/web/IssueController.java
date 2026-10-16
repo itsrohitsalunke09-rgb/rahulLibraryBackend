@@ -45,8 +45,8 @@ public class IssueController {
     public Page<IssueResponse> all(Pageable pageable, @RequestParam(required = false) IssueStatus status,
             @RequestParam(required = false) String q, @RequestParam(required = false) Integer year) {
         if (year != null) {
-            // Year filter: every issue made in that year (by issue date), any status.
-            return issueService.issuedInYear(year, pageable);
+            // Year filter: issues made in that year (by issue date), optionally of one status.
+            return issueService.issuedInYear(year, status, pageable);
         }
         return issueService.allPaged(pageable, status, q);
     }
@@ -66,14 +66,14 @@ public class IssueController {
 
     @GetMapping("/issues/counts")
     @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN')")
-    public Map<String, Long> counts(@RequestParam(required = false) String q) {
-        return issueService.counts(q);
+    public Map<String, Long> counts(@RequestParam(required = false) String q, @RequestParam(required = false) Integer year) {
+        return issueService.counts(q, year);
     }
 
     @GetMapping("/issues/issued")
     @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN')")
-    public Page<IssueResponse> issued(Pageable pageable) {
-        return issueService.issuedPaged(pageable);
+    public Page<IssueResponse> issued(Pageable pageable, @RequestParam(required = false) Integer year) {
+        return issueService.issuedPaged(pageable, year);
     }
 
     @GetMapping("/issues/overdue")

@@ -86,6 +86,25 @@ public interface BookIssueRepository extends JpaRepository<BookIssue, Long> {
             countQuery = "SELECT count(bi) FROM BookIssue bi WHERE bi.issueDate >= :from AND bi.issueDate < :to")
     Page<BookIssue> findIssuedBetween(@Param("from") LocalDate from, @Param("to") LocalDate to, Pageable pageable);
 
+    /** Issues with this status whose issue date is in [from, to), newest first. */
+    @EntityGraph(attributePaths = {"book", "student", "issuedBy"})
+    @Query(value = "SELECT bi FROM BookIssue bi WHERE bi.status = :status AND bi.issueDate >= :from AND bi.issueDate < :to "
+            + "ORDER BY bi.issueDate DESC, bi.id DESC",
+            countQuery = "SELECT count(bi) FROM BookIssue bi WHERE bi.status = :status AND bi.issueDate >= :from AND bi.issueDate < :to")
+    Page<BookIssue> findByStatusIssuedBetween(@Param("status") IssueStatus status, @Param("from") LocalDate from,
+                                             @Param("to") LocalDate to, Pageable pageable);
+
+    /** Issues with this status due before (overdue) or on/after (not yet due) today, issued in [from, to). */
+    @EntityGraph(attributePaths = {"book", "student", "issuedBy"})
+    @Query(value = "SELECT bi FROM BookIssue bi WHERE bi.status = :status AND bi.issueDate >= :from AND bi.issueDate < :to "
+            + "AND ((:overdue = true AND bi.dueDate < :today) OR (:overdue = false AND bi.dueDate >= :today)) "
+            + "ORDER BY bi.issueDate DESC, bi.id DESC",
+            countQuery = "SELECT count(bi) FROM BookIssue bi WHERE bi.status = :status AND bi.issueDate >= :from AND bi.issueDate < :to "
+            + "AND ((:overdue = true AND bi.dueDate < :today) OR (:overdue = false AND bi.dueDate >= :today))")
+    Page<BookIssue> findByDueIssuedBetween(@Param("status") IssueStatus status, @Param("overdue") boolean overdue,
+                                           @Param("today") LocalDate today, @Param("from") LocalDate from,
+                                           @Param("to") LocalDate to, Pageable pageable);
+
     /** Earliest and latest issue dates, to offer the years that have issues. */
     @Query("SELECT min(bi.issueDate) AS earliest, max(bi.issueDate) AS latest FROM BookIssue bi")
     IssueDateRange issueDateRange();

@@ -65,12 +65,26 @@ public class IssueService {
         return issues.findByStatusPaged(status, pageable).map(IssueResponse::from);
     }
 
-    /** Every issue made in the given year (by issue date), newest first. */
+    /**
+     * Issues made in the given year (by issue date), newest first. With a status the list is
+     * narrowed the same way as the unfiltered list: ISSUED = not yet due, OVERDUE = past due,
+     * RETURNED = returned; no status = every issue of that year.
+     */
     @Transactional(readOnly = true)
-    public Page<IssueResponse> issuedInYear(int year, Pageable pageable) {
+    public Page<IssueResponse> issuedInYear(int year, IssueStatus status, Pageable pageable) {
         Pageable unsorted = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
-        return issues.findIssuedBetween(LocalDate.of(year, 1, 1), LocalDate.of(year + 1, 1, 1), unsorted)
-                .map(IssueResponse::from);
+        LocalDate from = LocalDate.of(year, 1, 1);
+        LocalDate to = LocalDate.of(year + 1, 1, 1);
+        Page<BookIssue> page;
+        if (status == null) {
+            page = issues.findIssuedBetween(from, to, unsorted);
+        } else if (status == IssueStatus.ISSUED || status == IssueStatus.OVERDUE) {
+            page = issues.findByDueIssuedBetween(IssueStatus.ISSUED, status == IssueStatus.OVERDUE, LocalDate.now(),
+                    from, to, unsorted);
+        } else {
+            page = issues.findByStatusIssuedBetween(status, from, to, unsorted);
+        }
+        return page.map(IssueResponse::from);
     }
 
     /** Years that have at least one issue in their range, latest first (current year if there are none). */
@@ -114,12 +128,20 @@ public class IssueService {
 
     @Transactional(readOnly = true)
     public Map<String, Long> counts(String q) {
+        return counts(q, null);
+    }
+
+    /** Tab counts; with a year they count only issues made in that year. */
+    @Transactional(readOnly = true)
+    public Map<String, Long> counts(String q, Integer year) {
         if (q != null && !q.trim().isEmpty()) {
             long total = issues.countByBookTitleOrStudentName(q.trim());
             return Map.of("all", total, "issued", 0L, "overdue", 0L, "returned", 0L);
         }
-        BookIssueRepository.StatusCounts statusCounts =
-                issues.statusCounts(IssueStatus.ISSUED, IssueStatus.RETURNED, LocalDate.now());
+        BookIssueRepository.StatusCounts statusCounts = year == null
+                ? issues.statusCounts(IssueStatus.ISSUED, IssueStatus.RETURNED, LocalDate.now())
+                : issues.statusCountsBetween(IssueStatus.ISSUED, IssueStatus.RETURNED, LocalDate.now(),
+                        LocalDate.of(year, 1, 1), LocalDate.of(year + 1, 1, 1));
         long issued = statusCounts.getIssued();
         long overdue = statusCounts.getOverdue();
         long returned = statusCounts.getReturned();
@@ -134,6 +156,16 @@ public class IssueService {
     @Transactional(readOnly = true)
     public Page<IssueResponse> issuedPaged(Pageable pageable) {
         return issues.findByStatusOrderByIssueDateDesc(IssueStatus.ISSUED, pageable).map(IssueResponse::from);
+    }
+
+    /** Every copy still out (overdue included); with a year, only issues made in that year. */
+    @Transactional(readOnly = true)
+    public Page<IssueResponse> issuedPaged(Pageable pageable, Integer year) {
+        if (year == null) {
+            return issuedPaged(pageable);
+        }
+        return issues.findByStatusIssuedBetween(IssueStatus.ISSUED, LocalDate.of(year, 1, 1), LocalDate.of(year + 1, 1, 1),
+                PageRequest.of(pageable.getPageNumber(), pageable.getPageSize())).map(IssueResponse::from);
     }
 
     @Transactional(readOnly = true)
