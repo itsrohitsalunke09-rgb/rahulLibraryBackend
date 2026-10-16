@@ -115,6 +115,16 @@ public interface BookIssueRepository extends JpaRepository<BookIssue, Long> {
     StatusCounts statusCounts(@Param("issued") IssueStatus issued, @Param("returned") IssueStatus returned,
                               @Param("today") LocalDate today);
 
+    /** The same counts, only for issues whose issue date is in [from, to) (Dashboard year filter). */
+    @Query("SELECT "
+            + "coalesce(sum(case when bi.status = :issued and bi.dueDate >= :today then 1 else 0 end), 0) as issued, "
+            + "coalesce(sum(case when bi.status = :issued and bi.dueDate < :today then 1 else 0 end), 0) as overdue, "
+            + "coalesce(sum(case when bi.status = :returned then 1 else 0 end), 0) as returned "
+            + "FROM BookIssue bi WHERE bi.issueDate >= :from AND bi.issueDate < :to")
+    StatusCounts statusCountsBetween(@Param("issued") IssueStatus issued, @Param("returned") IssueStatus returned,
+                                     @Param("today") LocalDate today, @Param("from") LocalDate from,
+                                     @Param("to") LocalDate to);
+
     interface StatusCounts {
         long getIssued();
         long getOverdue();

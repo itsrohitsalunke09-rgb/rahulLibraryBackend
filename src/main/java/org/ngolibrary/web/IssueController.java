@@ -104,8 +104,9 @@ public class IssueController {
 
     @GetMapping("/dashboard")
     @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN')")
-    public DashboardResponse dashboard() {
-        return issueService.dashboard();
+    public DashboardResponse dashboard(@RequestParam(required = false) Integer year) {
+        // With a year, out/overdue count only issues made in that year.
+        return issueService.dashboard(year);
     }
 
     @GetMapping("/books/{bookId}/issues")

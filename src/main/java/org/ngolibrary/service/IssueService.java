@@ -202,9 +202,20 @@ public class IssueService {
 
     @Transactional(readOnly = true)
     public DashboardResponse dashboard() {
+        return dashboard(null);
+    }
+
+    /**
+     * Dashboard numbers; with a year, the issue numbers (out, overdue) count only issues made in
+     * that year. Book, copy and people totals are always for the whole library.
+     */
+    @Transactional(readOnly = true)
+    public DashboardResponse dashboard(Integer year) {
         BookRepository.Totals totals = books.totals();
-        BookIssueRepository.StatusCounts statusCounts =
-                issues.statusCounts(IssueStatus.ISSUED, IssueStatus.RETURNED, LocalDate.now());
+        BookIssueRepository.StatusCounts statusCounts = year == null
+                ? issues.statusCounts(IssueStatus.ISSUED, IssueStatus.RETURNED, LocalDate.now())
+                : issues.statusCountsBetween(IssueStatus.ISSUED, IssueStatus.RETURNED, LocalDate.now(),
+                        LocalDate.of(year, 1, 1), LocalDate.of(year + 1, 1, 1));
         long overdue = statusCounts.getOverdue();
         // "Issued" on the dashboard means every copy currently out, overdue included
         long issued = statusCounts.getIssued() + overdue;
