@@ -6,6 +6,7 @@ import javax.validation.Valid;
 
 import org.ngolibrary.domain.BookCategory;
 import org.ngolibrary.dto.BookCategoryRequest;
+import org.ngolibrary.repo.BookRepository;
 import org.ngolibrary.service.BookCategoryService;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -31,6 +32,13 @@ public class BookCategoryController {
     @GetMapping
     public List<BookCategory> list() {
         return categoryService.list();
+    }
+
+    /** Categories typed on books before the master existed, not matching any master name. */
+    @GetMapping("/unlinked")
+    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN')")
+    public List<BookRepository.UnlinkedCategory> unlinked() {
+        return categoryService.unlinked();
     }
 
     @PostMapping

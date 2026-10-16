@@ -12,6 +12,8 @@ public class BookRequest {
     @NotBlank
     private String author;
     private String category;
+    /** Master category to link; takes precedence over the category text. */
+    private Long categoryId;
     private String description;
     @NotNull
     @Min(1)
@@ -47,6 +49,14 @@ public class BookRequest {
 
     public void setCategory(String category) {
         this.category = category;
+    }
+
+    public Long getCategoryId() {
+        return categoryId;
+    }
+
+    public void setCategoryId(Long categoryId) {
+        this.categoryId = categoryId;
     }
 
     public String getDescription() {

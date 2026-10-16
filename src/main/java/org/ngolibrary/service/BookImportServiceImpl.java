@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -21,15 +22,18 @@ public class BookImportServiceImpl implements BookImportService {
 
     private static final Logger log = LoggerFactory.getLogger(BookImportServiceImpl.class);
     private final BookService bookService;
+    private final BookCategoryService categoryService;
 
-    public BookImportServiceImpl(BookService bookService) {
+    public BookImportServiceImpl(BookService bookService, BookCategoryService categoryService) {
         this.bookService = bookService;
+        this.categoryService = categoryService;
     }
 
     @Override
     @Transactional
     public BulkImportResult importFromExcel(MultipartFile file) {
         List<String> errors = new ArrayList<>();
+        List<String> warnings = new ArrayList<>();
         int totalRows = 0;
         int successful = 0;
         int failed = 0;
@@ -48,7 +52,7 @@ public class BookImportServiceImpl implements BookImportService {
                 totalRows++;
 
                 try {
-                    BookRequest request = parseRow(row);
+                    BookRequest request = parseRow(row, i + 1, warnings);
                     bookService.create(request);
                     successful++;
                 } catch (Exception e) {
@@ -63,7 +67,7 @@ public class BookImportServiceImpl implements BookImportService {
             errors.add("File processing error: " + e.getMessage());
         }
 
-        return new BulkImportResult(totalRows, successful, failed, errors);
+        return new BulkImportResult(totalRows, successful, failed, errors, warnings);
     }
 
     private boolean isEmptyRow(Row row) {
@@ -77,13 +81,20 @@ public class BookImportServiceImpl implements BookImportService {
         return true;
     }
 
-    private BookRequest parseRow(Row row) {
+    private BookRequest parseRow(Row row, int rowNumber, List<String> warnings) {
         BookRequest request = new BookRequest();
         
         // Required fields
         request.setTitle(getStringCellValue(row, 0));
         request.setAuthor(getStringCellValue(row, 1));
-        request.setCategory(getStringCellValue(row, 2));
+        // Column C holds the category number from the master; an unknown number imports the book without one.
+        String categoryNumber = getCategoryNumber(row, 2);
+        if (categoryNumber != null) {
+            categoryService.findByNumber(categoryNumber).ifPresentOrElse(
+                    category -> request.setCategoryId(category.getId()),
+                    () -> warnings.add("Row " + rowNumber + ": category number " + categoryNumber
+                            + " is not in the category master, so the book was added without a category"));
+        }
         request.setTotalCopies(getIntCellValue(row, 3));
         
         // Optional fields
@@ -124,6 +135,21 @@ public class BookImportServiceImpl implements BookImportService {
                 return String.valueOf((long) cell.getNumericCellValue());
             case BOOLEAN:
                 return String.valueOf(cell.getBooleanCellValue());
+            default:
+                return null;
+        }
+    }
+
+    /** Category number as stored in the master: 456.0 becomes "456", 456.83 stays "456.83". */
+    private String getCategoryNumber(Row row, int cellIndex) {
+        Cell cell = row.getCell(cellIndex);
+        if (cell == null) return null;
+        CellType type = cell.getCellType() == CellType.FORMULA ? cell.getCachedFormulaResultType() : cell.getCellType();
+        switch (type) {
+            case NUMERIC:
+                return BookCategoryService.normalizeNumber(BigDecimal.valueOf(cell.getNumericCellValue()).toPlainString());
+            case STRING:
+                return BookCategoryService.normalizeNumber(cell.getStringCellValue());
             default:
                 return null;
         }

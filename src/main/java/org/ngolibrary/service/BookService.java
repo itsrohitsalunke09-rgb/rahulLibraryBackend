@@ -20,10 +20,12 @@ public class BookService {
 
     private final BookRepository books;
     private final BookIssueRepository issues;
+    private final BookCategoryService categories;
 
-    public BookService(BookRepository books, BookIssueRepository issues) {
+    public BookService(BookRepository books, BookIssueRepository issues, BookCategoryService categories) {
         this.books = books;
         this.issues = issues;
+        this.categories = categories;
     }
 
     public List<Book> list(String query) {
@@ -68,12 +70,35 @@ public class BookService {
         books.deleteById(id);
     }
 
+    /**
+     * Links the book to the master category given by id; otherwise the category text is
+     * linked when a master category has that name (the website still sends text) and kept
+     * as plain text when none does.
+     */
+    private void applyCategory(Book book, BookRequest request) {
+        if (request.getCategoryId() != null) {
+            book.setCategoryRef(categories.findById(request.getCategoryId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Category not found")));
+            return;
+        }
+        String text = request.getCategory() == null ? null : request.getCategory().trim();
+        if (text == null || text.isEmpty()) {
+            book.setCategoryRef(null);
+            book.setCategory(null);
+            return;
+        }
+        book.setCategoryRef(categories.findByName(text).orElse(null));
+        if (book.getCategoryRef() == null) {
+            book.setCategory(text);
+        }
+    }
+
     private void apply(Book book, BookRequest request, boolean creating) {
         int oldTotal = book.getTotalCopies();
         int oldAvailable = book.getAvailableCopies();
         book.setTitle(request.getTitle());
         book.setAuthor(request.getAuthor());
-        book.setCategory(request.getCategory());
+        applyCategory(book, request);
         book.setDescription(request.getDescription());
         book.setDate(request.getDate());
         book.setRegistrationNumber(request.getRegistrationNumber());

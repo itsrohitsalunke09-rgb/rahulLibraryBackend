@@ -3,6 +3,7 @@ package org.ngolibrary.repo;
 import java.util.List;
 
 import org.ngolibrary.domain.Book;
+import org.ngolibrary.domain.BookCategory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -27,12 +28,29 @@ public interface BookRepository extends JpaRepository<Book, Long> {
 
     Page<Book> findAll(Pageable pageable);
 
-    long countByCategoryIgnoreCase(String category);
+    long countByCategoryRef(BookCategory category);
 
-    /** Keeps books linked when a category in the master is renamed. */
+    /** Copies a renamed master category's name onto its linked books. */
     @Modifying
-    @Query("UPDATE Book b SET b.category = :newName WHERE lower(b.category) = lower(:oldName)")
-    int renameCategory(@Param("oldName") String oldName, @Param("newName") String newName);
+    @Query("UPDATE Book b SET b.category = :#{#category.name} WHERE b.categoryRef = :category")
+    int syncCategoryName(@Param("category") BookCategory category);
+
+    /** Links books whose old text category has this master category's name (ignoring case). */
+    @Modifying
+    @Query("UPDATE Book b SET b.categoryRef = :category, b.category = :#{#category.name} "
+            + "WHERE b.categoryRef IS NULL AND lower(trim(b.category)) = lower(:#{#category.name})")
+    int linkByName(@Param("category") BookCategory category);
+
+    /** Text categories on books that are not linked to the master, with how many books use each. */
+    @Query("SELECT b.category AS name, count(b) AS books FROM Book b "
+            + "WHERE b.categoryRef IS NULL AND b.category IS NOT NULL AND trim(b.category) <> '' "
+            + "GROUP BY b.category ORDER BY b.category")
+    List<UnlinkedCategory> unlinkedCategories();
+
+    interface UnlinkedCategory {
+        String getName();
+        long getBooks();
+    }
 
     @Query("SELECT count(b) as titles, coalesce(sum(b.totalCopies), 0) as totalCopies, "
             + "coalesce(sum(b.availableCopies), 0) as availableCopies FROM Book b")

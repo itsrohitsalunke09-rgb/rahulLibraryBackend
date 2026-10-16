@@ -4,11 +4,16 @@ import java.time.LocalDate;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Index;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
 import javax.persistence.Table;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity
 @Table(name = "books", indexes = {
@@ -30,7 +35,14 @@ public class Book {
     @Column(nullable = false)
     private String author;
 
+    /** Category name shown everywhere; kept equal to the linked master category's name. */
     private String category;
+
+    /** Link to the book category master; null for no category or an old text-only category. */
+    @JsonIgnore
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "category_id")
+    private BookCategory categoryRef;
 
     @Column(length = 2000)
     private String description;
@@ -87,6 +99,26 @@ public class Book {
 
     public void setCategory(String category) {
         this.category = category;
+    }
+
+    public BookCategory getCategoryRef() {
+        return categoryRef;
+    }
+
+    /** Links the book to a master category (or unlinks it) and copies the category's name. */
+    public void setCategoryRef(BookCategory categoryRef) {
+        this.categoryRef = categoryRef;
+        if (categoryRef != null) {
+            this.category = categoryRef.getName();
+        }
+    }
+
+    public Long getCategoryId() {
+        return categoryRef == null ? null : categoryRef.getId();
+    }
+
+    public String getCategoryNumber() {
+        return categoryRef == null ? null : categoryRef.getCategoryNumber();
     }
 
     public String getDescription() {
