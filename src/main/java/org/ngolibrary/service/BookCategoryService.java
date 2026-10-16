@@ -52,10 +52,11 @@ public class BookCategoryService {
         return categories.findById(id);
     }
 
-    /** Looks up a category by number; "456.0" finds 456 and "456.830" finds 456.83. */
+    /** Looks up a category by its number exactly as stored (ignoring surrounding spaces and letter case). */
     public Optional<BookCategory> findByNumber(String number) {
-        String normalized = normalizeNumber(number);
-        return normalized == null ? Optional.empty() : categories.findByCategoryNumberIgnoreCase(normalized);
+        return number == null || number.isBlank()
+                ? Optional.empty()
+                : categories.findByCategoryNumberIgnoreCase(number.trim());
     }
 
     public Optional<BookCategory> findByName(String name) {
@@ -110,30 +111,14 @@ public class BookCategoryService {
         }
     }
 
-    /**
-     * Category numbers as stored: Excel's 456.0 becomes "456", 456.83 stays "456.83".
-     * Values that are not numbers are kept as typed (trimmed). Returns null for blank.
-     */
-    public static String normalizeNumber(String value) {
-        if (value == null || value.isBlank()) {
-            return null;
-        }
-        String trimmed = value.trim();
-        try {
-            BigDecimal number = new BigDecimal(trimmed).stripTrailingZeros();
-            return number.scale() < 0 ? number.setScale(0).toPlainString() : number.toPlainString();
-        } catch (NumberFormatException e) {
-            return trimmed;
-        }
-    }
-
     private BookCategory find(Long id) {
         return categories.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found"));
     }
 
     private void apply(BookCategory category, BookCategoryRequest request) {
-        String number = normalizeNumber(request.getCategoryNumber());
+        // Category numbers are kept exactly as typed (only surrounding spaces removed).
+        String number = request.getCategoryNumber().trim();
         String name = request.getName().trim();
         categories.findByCategoryNumberIgnoreCase(number)
                 .filter(other -> !other.getId().equals(category.getId()))

@@ -11,7 +11,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -140,19 +139,13 @@ public class BookImportServiceImpl implements BookImportService {
         }
     }
 
-    /** Category number as stored in the master: 456.0 becomes "456", 456.83 stays "456.83". */
+    /** Category number exactly as the cell shows it in Excel (e.g. "456", "456.0", "456.83"); null if blank. */
     private String getCategoryNumber(Row row, int cellIndex) {
         Cell cell = row.getCell(cellIndex);
         if (cell == null) return null;
-        CellType type = cell.getCellType() == CellType.FORMULA ? cell.getCachedFormulaResultType() : cell.getCellType();
-        switch (type) {
-            case NUMERIC:
-                return BookCategoryService.normalizeNumber(BigDecimal.valueOf(cell.getNumericCellValue()).toPlainString());
-            case STRING:
-                return BookCategoryService.normalizeNumber(cell.getStringCellValue());
-            default:
-                return null;
-        }
+        FormulaEvaluator evaluator = row.getSheet().getWorkbook().getCreationHelper().createFormulaEvaluator();
+        String shown = new DataFormatter().formatCellValue(cell, evaluator).trim();
+        return shown.isEmpty() ? null : shown;
     }
 
     private Integer getIntCellValue(Row row, int cellIndex) {
