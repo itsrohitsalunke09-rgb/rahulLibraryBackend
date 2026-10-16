@@ -80,6 +80,21 @@ public interface BookIssueRepository extends JpaRepository<BookIssue, Long> {
     @Query("SELECT count(bi) FROM BookIssue bi WHERE (lower(bi.book.title) LIKE lower(concat('%', :q, '%')) OR lower(bi.student.fullName) LIKE lower(concat('%', :q, '%')))")
     long countByBookTitleOrStudentName(@Param("q") String q);
 
+    /** Issues whose issue date falls in [from, to), newest first (used for the year filter). */
+    @EntityGraph(attributePaths = {"book", "student", "issuedBy"})
+    @Query(value = "SELECT bi FROM BookIssue bi WHERE bi.issueDate >= :from AND bi.issueDate < :to ORDER BY bi.issueDate DESC, bi.id DESC",
+            countQuery = "SELECT count(bi) FROM BookIssue bi WHERE bi.issueDate >= :from AND bi.issueDate < :to")
+    Page<BookIssue> findIssuedBetween(@Param("from") LocalDate from, @Param("to") LocalDate to, Pageable pageable);
+
+    /** Earliest and latest issue dates, to offer the years that have issues. */
+    @Query("SELECT min(bi.issueDate) AS earliest, max(bi.issueDate) AS latest FROM BookIssue bi")
+    IssueDateRange issueDateRange();
+
+    interface IssueDateRange {
+        LocalDate getEarliest();
+        LocalDate getLatest();
+    }
+
     @Query("SELECT count(bi) FROM BookIssue bi WHERE bi.status = :status AND bi.dueDate < :date")
     long countByStatusAndDueDateBefore(@Param("status") IssueStatus status, @Param("date") LocalDate date);
 

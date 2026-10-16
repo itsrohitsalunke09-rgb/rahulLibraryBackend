@@ -42,8 +42,20 @@ public class IssueController {
 
     @GetMapping("/issues")
     @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN')")
-    public Page<IssueResponse> all(Pageable pageable, @RequestParam(required = false) IssueStatus status, @RequestParam(required = false) String q) {
+    public Page<IssueResponse> all(Pageable pageable, @RequestParam(required = false) IssueStatus status,
+            @RequestParam(required = false) String q, @RequestParam(required = false) Integer year) {
+        if (year != null) {
+            // Year filter: every issue made in that year (by issue date), any status.
+            return issueService.issuedInYear(year, pageable);
+        }
         return issueService.allPaged(pageable, status, q);
+    }
+
+    /** Years to offer in the Issues year filter, latest first. */
+    @GetMapping("/issues/years")
+    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN')")
+    public List<Integer> years() {
+        return issueService.issueYears();
     }
 
     @GetMapping("/issues/count")

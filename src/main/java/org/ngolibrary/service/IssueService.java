@@ -1,6 +1,7 @@
 package org.ngolibrary.service;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -17,6 +18,7 @@ import org.ngolibrary.repo.BookIssueRepository;
 import org.ngolibrary.repo.BookRepository;
 import org.ngolibrary.repo.UserAccountRepository;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -61,6 +63,28 @@ public class IssueService {
             return issues.findByStatusAndDueDateBeforeOrderByIssueDateDesc(IssueStatus.ISSUED, LocalDate.now(), pageable).map(IssueResponse::from);
         }
         return issues.findByStatusPaged(status, pageable).map(IssueResponse::from);
+    }
+
+    /** Every issue made in the given year (by issue date), newest first. */
+    @Transactional(readOnly = true)
+    public Page<IssueResponse> issuedInYear(int year, Pageable pageable) {
+        Pageable unsorted = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
+        return issues.findIssuedBetween(LocalDate.of(year, 1, 1), LocalDate.of(year + 1, 1, 1), unsorted)
+                .map(IssueResponse::from);
+    }
+
+    /** Years that have at least one issue in their range, latest first (current year if there are none). */
+    @Transactional(readOnly = true)
+    public List<Integer> issueYears() {
+        BookIssueRepository.IssueDateRange range = issues.issueDateRange();
+        int current = LocalDate.now().getYear();
+        int first = range == null || range.getEarliest() == null ? current : range.getEarliest().getYear();
+        int last = range == null || range.getLatest() == null ? current : Math.max(range.getLatest().getYear(), first);
+        List<Integer> years = new ArrayList<>();
+        for (int y = last; y >= first; y--) {
+            years.add(y);
+        }
+        return years;
     }
 
     @Transactional(readOnly = true)
