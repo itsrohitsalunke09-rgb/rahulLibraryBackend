@@ -53,6 +53,8 @@ public class Book {
     @Column(nullable = false)
     private int availableCopies;
 
+    /** Date the book was bought; still called "date" in the API. */
+    @Column(name = "bought_date")
     private LocalDate date;
 
     private String registrationNumber;
