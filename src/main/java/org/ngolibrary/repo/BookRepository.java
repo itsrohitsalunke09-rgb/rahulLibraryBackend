@@ -6,6 +6,7 @@ import org.ngolibrary.domain.Book;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -25,6 +26,13 @@ public interface BookRepository extends JpaRepository<Book, Long> {
     Page<Book> searchPaged(@Param("q") String q, Pageable pageable);
 
     Page<Book> findAll(Pageable pageable);
+
+    long countByCategoryIgnoreCase(String category);
+
+    /** Keeps books linked when a category in the master is renamed. */
+    @Modifying
+    @Query("UPDATE Book b SET b.category = :newName WHERE lower(b.category) = lower(:oldName)")
+    int renameCategory(@Param("oldName") String oldName, @Param("newName") String newName);
 
     @Query("SELECT count(b) as titles, coalesce(sum(b.totalCopies), 0) as totalCopies, "
             + "coalesce(sum(b.availableCopies), 0) as availableCopies FROM Book b")
