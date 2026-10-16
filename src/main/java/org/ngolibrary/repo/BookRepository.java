@@ -28,6 +28,26 @@ public interface BookRepository extends JpaRepository<Book, Long> {
 
     Page<Book> findAll(Pageable pageable);
 
+    /**
+     * Registration-number order that reads naturally for numbers stored as text
+     * (1, 2, 10 rather than 1, 10, 2): shorter values first, then by value; books
+     * without a registration number come last.
+     */
+    String BY_REGISTRATION = " ORDER BY CASE WHEN b.registrationNumber IS NULL OR trim(b.registrationNumber) = '' "
+            + "THEN 1 ELSE 0 END, length(trim(b.registrationNumber)), trim(b.registrationNumber), b.id";
+
+    String SEARCH = " WHERE lower(b.title) LIKE lower(concat('%', :q, '%')) "
+            + "OR lower(b.author) LIKE lower(concat('%', :q, '%')) "
+            + "OR lower(b.category) LIKE lower(concat('%', :q, '%')) "
+            + "OR lower(b.registrationNumber) LIKE lower(concat('%', :q, '%')) "
+            + "OR lower(b.publication) LIKE lower(concat('%', :q, '%'))";
+
+    @Query(value = "SELECT b FROM Book b" + BY_REGISTRATION, countQuery = "SELECT count(b) FROM Book b")
+    Page<Book> findAllByRegistrationNumber(Pageable pageable);
+
+    @Query(value = "SELECT b FROM Book b" + SEARCH + BY_REGISTRATION, countQuery = "SELECT count(b) FROM Book b" + SEARCH)
+    Page<Book> searchByRegistrationNumber(@Param("q") String q, Pageable pageable);
+
     long countByCategoryRef(BookCategory category);
 
     /** Copies a renamed master category's name onto its linked books. */

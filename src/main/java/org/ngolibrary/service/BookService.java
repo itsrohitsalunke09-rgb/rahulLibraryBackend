@@ -42,6 +42,14 @@ public class BookService {
         return books.searchPaged(query.trim(), pageable);
     }
 
+    /** Books in registration-number order (1, 2, 10…), books without one last. */
+    public Page<Book> listPagedByRegistrationNumber(String query, Pageable pageable) {
+        if (query == null || query.isBlank()) {
+            return books.findAllByRegistrationNumber(pageable);
+        }
+        return books.searchByRegistrationNumber(query.trim(), pageable);
+    }
+
     public Book create(BookRequest request) {
         Book book = new Book();
         apply(book, request, true);
