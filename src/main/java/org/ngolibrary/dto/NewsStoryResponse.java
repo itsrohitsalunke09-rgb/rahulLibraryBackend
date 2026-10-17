@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import org.ngolibrary.domain.NewsStory;
+import org.ngolibrary.domain.NewsTemplate;
 
 public record NewsStoryResponse(
         Long id,
@@ -11,6 +12,7 @@ public record NewsStoryResponse(
         String body,
         LocalDate eventDate,
         String photoCaption,
+        String template,
         boolean hasPhoto,
         int photoVersion,
         String createdByName,
@@ -19,7 +21,8 @@ public record NewsStoryResponse(
 
     public static NewsStoryResponse from(NewsStory s) {
         return new NewsStoryResponse(s.getId(), s.getHeadline(), s.getBody(), s.getEventDate(),
-                s.getPhotoCaption(), s.isHasPhoto(), s.getPhotoVersion(), s.getCreatedByName(),
+                s.getPhotoCaption(),
+                (s.getTemplate() == null ? NewsTemplate.CLASSIC : s.getTemplate()).name(), s.isHasPhoto(), s.getPhotoVersion(), s.getCreatedByName(),
                 s.getCreatedAt(), s.getUpdatedAt());
     }
 }

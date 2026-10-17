@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.ngolibrary.domain.NewsPhoto;
 import org.ngolibrary.domain.NewsStory;
+import org.ngolibrary.domain.NewsTemplate;
 import org.ngolibrary.domain.UserAccount;
 import org.ngolibrary.dto.NewsStoryRequest;
 import org.ngolibrary.dto.NewsStoryResponse;
@@ -192,5 +193,48 @@ class NewsServiceTest {
                 () -> service.update(99L, valid(), null));
         assertEquals(HttpStatus.NOT_FOUND, ex.getStatus());
         assertEquals("Story not found", ex.getReason());
+    }
+
+    @Test
+    void createDefaultsToClassic() {
+        assertEquals("CLASSIC", service.create(valid(), null, author).template());
+        NewsStoryRequest blank = valid();
+        blank.setTemplate("");
+        assertEquals("CLASSIC", service.create(blank, null, author).template());
+    }
+
+    @Test
+    void createStoresTemplate() {
+        NewsStoryRequest req = valid();
+        req.setTemplate(" notice ");
+        assertEquals("NOTICE", service.create(req, null, author).template());
+        ArgumentCaptor<NewsStory> cap = ArgumentCaptor.forClass(NewsStory.class);
+        verify(stories).save(cap.capture());
+        assertEquals(NewsTemplate.NOTICE, cap.getValue().getTemplate());
+    }
+
+    @Test
+    void unknownTemplateIs400() {
+        NewsStoryRequest req = valid();
+        req.setTemplate("POSTER");
+        assertBadRequest("Unknown template", () -> service.create(req, null, author));
+    }
+
+    @Test
+    void nullTemplateReadsAsClassic() {
+        NewsStory s = existing(false, 0);
+        s.setTemplate(null);
+        assertEquals("CLASSIC", service.get(7L).template());
+    }
+
+    @Test
+    void updateTemplateKeepsPhoto() {
+        existing(true, 2);
+        NewsStoryRequest req = valid();
+        req.setTemplate("PHOTO_BANNER");
+        NewsStoryResponse res = service.update(7L, req, null);
+        assertTrue(res.hasPhoto());
+        assertEquals(2, res.photoVersion());
+        assertEquals("PHOTO_BANNER", res.template());
     }
 }

@@ -5,6 +5,8 @@ import java.time.LocalDateTime;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
@@ -46,6 +48,11 @@ public class NewsStory {
 
     @Column(nullable = false)
     private LocalDateTime updatedAt;
+
+    /** Layout template; null on rows created before templates existed (read as CLASSIC). */
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private NewsTemplate template;
 
     public Long getId() {
         return id;
@@ -125,5 +132,13 @@ public class NewsStory {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public NewsTemplate getTemplate() {
+        return template;
+    }
+
+    public void setTemplate(NewsTemplate template) {
+        this.template = template;
     }
 }

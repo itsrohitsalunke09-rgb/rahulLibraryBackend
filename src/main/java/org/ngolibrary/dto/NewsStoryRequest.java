@@ -8,6 +8,7 @@ public class NewsStoryRequest {
     private String body;
     private LocalDate eventDate;
     private String photoCaption;
+    private String template;
     private boolean removePhoto;
 
     public String getHeadline() {
@@ -40,6 +41,14 @@ public class NewsStoryRequest {
 
     public void setPhotoCaption(String photoCaption) {
         this.photoCaption = photoCaption;
+    }
+
+    public String getTemplate() {
+        return template;
+    }
+
+    public void setTemplate(String template) {
+        this.template = template;
     }
 
     public boolean isRemovePhoto() {

@@ -6,6 +6,7 @@ import java.util.Set;
 
 import org.ngolibrary.domain.NewsPhoto;
 import org.ngolibrary.domain.NewsStory;
+import org.ngolibrary.domain.NewsTemplate;
 import org.ngolibrary.domain.UserAccount;
 import org.ngolibrary.dto.NewsStoryRequest;
 import org.ngolibrary.dto.NewsStoryResponse;
@@ -51,6 +52,7 @@ public class NewsService {
     @Transactional
     public NewsStoryResponse create(NewsStoryRequest req, MultipartFile photo, UserAccount author) {
         validate(req);
+        NewsTemplate template = parseTemplate(req.getTemplate());
         boolean hasFile = photo != null && !photo.isEmpty();
         if (hasFile) {
             checkPhoto(photo);
@@ -61,6 +63,7 @@ public class NewsService {
         story.setCreatedAt(now);
         story.setUpdatedAt(now);
         applyText(story, req);
+        story.setTemplate(template);
         story.setHasPhoto(hasFile);
         story.setPhotoVersion(hasFile ? 1 : 0);
         if (!hasFile) {
@@ -77,11 +80,13 @@ public class NewsService {
     public NewsStoryResponse update(Long id, NewsStoryRequest req, MultipartFile photo) {
         NewsStory story = find(id);
         validate(req);
+        NewsTemplate template = parseTemplate(req.getTemplate());
         boolean hasFile = photo != null && !photo.isEmpty();
         if (hasFile) {
             checkPhoto(photo);
         }
         applyText(story, req);
+        story.setTemplate(template);
         story.setUpdatedAt(LocalDateTime.now());
         if (hasFile) {
             story.setHasPhoto(true);
@@ -146,6 +151,18 @@ public class NewsService {
         story.setBody(trimmed(req.getBody()));
         story.setEventDate(req.getEventDate());
         story.setPhotoCaption(trimmed(req.getPhotoCaption()));
+    }
+
+    private static NewsTemplate parseTemplate(String value) {
+        String t = trimmed(value);
+        if (t == null) {
+            return NewsTemplate.CLASSIC;
+        }
+        try {
+            return NewsTemplate.valueOf(t.toUpperCase(java.util.Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            throw bad("Unknown template");
+        }
     }
 
     private void checkPhoto(MultipartFile photo) {
