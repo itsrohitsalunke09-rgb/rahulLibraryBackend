@@ -237,4 +237,22 @@ class NewsServiceTest {
         assertEquals(2, res.photoVersion());
         assertEquals("PHOTO_BANNER", res.template());
     }
+
+    @Test
+    void updateWithoutTemplateKeepsStored() {
+        NewsStory s = existing(false, 0);
+        s.setTemplate(NewsTemplate.NOTICE);
+        NewsStoryRequest req = valid();
+        req.setTemplate(null);
+        assertEquals("NOTICE", service.update(7L, req, null).template());
+        assertEquals(NewsTemplate.NOTICE, s.getTemplate());
+    }
+
+    @Test
+    void unknownTemplateOnUpdateIs400() {
+        existing(false, 0);
+        NewsStoryRequest req = valid();
+        req.setTemplate("POSTER");
+        assertBadRequest("Unknown template", () -> service.update(7L, req, null));
+    }
 }

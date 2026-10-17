@@ -80,7 +80,10 @@ public class NewsService {
     public NewsStoryResponse update(Long id, NewsStoryRequest req, MultipartFile photo) {
         NewsStory story = find(id);
         validate(req);
-        NewsTemplate template = parseTemplate(req.getTemplate());
+        // An edit that sends no template keeps the story's own; an unknown one is still rejected.
+        NewsTemplate template = trimmed(req.getTemplate()) == null && story.getTemplate() != null
+                ? story.getTemplate()
+                : parseTemplate(req.getTemplate());
         boolean hasFile = photo != null && !photo.isEmpty();
         if (hasFile) {
             checkPhoto(photo);
