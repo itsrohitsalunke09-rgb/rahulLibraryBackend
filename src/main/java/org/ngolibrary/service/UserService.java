@@ -11,6 +11,8 @@ import org.ngolibrary.domain.UserAccount;
 import org.ngolibrary.dto.ProfileUpdateRequest;
 import org.ngolibrary.dto.UserRequest;
 import org.ngolibrary.dto.UserResponse;
+import org.ngolibrary.domain.AadhaarPhoto;
+import org.ngolibrary.repo.AadhaarPhotoRepository;
 import org.ngolibrary.repo.BookIssueRepository;
 import org.ngolibrary.repo.UserAccountRepository;
 import org.springframework.data.domain.Page;
@@ -18,6 +20,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 @Service
@@ -26,11 +29,14 @@ public class UserService {
     private final UserAccountRepository users;
     private final PasswordEncoder encoder;
     private final BookIssueRepository issues;
+    private final AadhaarPhotoRepository aadhaarPhotos;
 
-    public UserService(UserAccountRepository users, PasswordEncoder encoder, BookIssueRepository issues) {
+    public UserService(UserAccountRepository users, PasswordEncoder encoder, BookIssueRepository issues,
+                       AadhaarPhotoRepository aadhaarPhotos) {
         this.users = users;
         this.encoder = encoder;
         this.issues = issues;
+        this.aadhaarPhotos = aadhaarPhotos;
     }
 
     public Page<UserResponse> listPaged(Role role, String q, Pageable pageable) {
@@ -62,17 +68,59 @@ public class UserService {
     }
 
     public UserResponse update(Long id, UserRequest request, UserAccount currentUser) {
-        UserAccount user = users.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
-        if (currentUser.getRole() != Role.ADMIN && user.getRole() == Role.ADMIN) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only an admin can edit admin accounts");
-        }
+        UserAccount user = editable(id, currentUser);
         checkCanAssignRole(currentUser, request.getRole());
         if (!user.getUsername().equals(request.getUsername()) && users.existsByUsername(request.getUsername())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Username already exists");
         }
         apply(user, request, false);
         return UserResponse.from(users.save(user));
+    }
+
+    /** The account to change; only an admin may change an admin account. */
+    private UserAccount editable(Long id, UserAccount currentUser) {
+        UserAccount user = users.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        if (currentUser.getRole() != Role.ADMIN && user.getRole() == Role.ADMIN) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only an admin can edit admin accounts");
+        }
+        return user;
+    }
+
+    public AadhaarPhoto aadhaarPhoto(Long userId) {
+        return aadhaarPhotos.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No Aadhaar card photo"));
+    }
+
+    /** Stores (or replaces) the photo of the user's Aadhaar card. */
+    public void saveAadhaarPhoto(Long userId, MultipartFile file, UserAccount currentUser) {
+        editable(userId, currentUser);
+        if (file == null || file.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Choose a photo of the Aadhaar card");
+        }
+        if (file.getSize() > NewsService.MAX_PHOTO_BYTES) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Photo must be under 2 MB");
+        }
+        String type = file.getContentType() == null ? "" : file.getContentType().toLowerCase();
+        if (!NewsService.PHOTO_TYPES.contains(type)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Photo must be a JPEG, PNG or WebP image");
+        }
+        AadhaarPhoto photo = new AadhaarPhoto();
+        photo.setUserId(userId);
+        photo.setContentType(type);
+        try {
+            photo.setData(file.getBytes());
+        } catch (java.io.IOException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The photo could not be read. Please try again.");
+        }
+        aadhaarPhotos.save(photo);
+    }
+
+    public void deleteAadhaarPhoto(Long userId, UserAccount currentUser) {
+        editable(userId, currentUser);
+        if (aadhaarPhotos.existsById(userId)) {
+            aadhaarPhotos.deleteById(userId);
+        }
     }
 
     private void checkCanAssignRole(UserAccount currentUser, Role role) {
@@ -128,5 +176,9 @@ public class UserService {
             }
         }
         users.deleteById(id);
+        // After the account is gone, so a refused delete keeps the card; an ID photo must not outlive its account.
+        if (aadhaarPhotos.existsById(id)) {
+            aadhaarPhotos.deleteById(id);
+        }
     }
 }
