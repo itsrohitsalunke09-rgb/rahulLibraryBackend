@@ -50,10 +50,12 @@ app:
     # https://localhost = the Android app (Capacitor), http://localhost:8100 = `ionic serve`
     allowed-origins: "http://localhost:4200,http://127.0.0.1:4200,https://rahullibraryshindewadi.vercel.app,https://localhost,http://localhost:8100"
 
+  # Forgot-password codes are sent with Brevo (HTTP API; Render's free plan blocks SMTP).
+  # MAIL_FROM must be a sender address verified in Brevo.
   email:
-    enabled: false
-    from: noreply@ngolibrary.org
-    from-name: Pathshala Library
+    brevo-api-key: ${BREVO_API_KEY:}
+    from: ${MAIL_FROM:}
+    from-name: Rahul Library
 
   whatsapp:
     provider: log

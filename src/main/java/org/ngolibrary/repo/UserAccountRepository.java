@@ -15,6 +15,7 @@ public interface UserAccountRepository extends JpaRepository<UserAccount, Long> 
     Optional<UserAccount> findByUsername(String username);
     boolean existsByUsername(String username);
     long countByRole(Role role);
+    List<UserAccount> findByEmailIgnoreCaseAndActiveTrue(String email);
 
     @Query("SELECT u FROM UserAccount u WHERE u.role = :role")
     Page<UserAccount> findByRole(@Param("role") Role role, Pageable pageable);

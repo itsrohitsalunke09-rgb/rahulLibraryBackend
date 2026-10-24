@@ -4,9 +4,11 @@ import org.ngolibrary.domain.UserAccount;
 import org.ngolibrary.dto.ApiMessage;
 import org.ngolibrary.dto.AuthResponse;
 import org.ngolibrary.dto.LoginRequest;
+import org.ngolibrary.dto.PasswordResetRequest;
 import org.ngolibrary.dto.RegistrationRequest;
 import org.ngolibrary.dto.UserResponse;
 import org.ngolibrary.service.AuthService;
+import org.ngolibrary.service.PasswordResetService;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -21,9 +23,24 @@ import javax.validation.Valid;
 public class AuthController {
 
     private final AuthService authService;
+    private final PasswordResetService passwordReset;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, PasswordResetService passwordReset) {
         this.authService = authService;
+        this.passwordReset = passwordReset;
+    }
+
+    /** Always the same answer, so it doesn't reveal whether an account uses the email. */
+    @PostMapping("/forgot-password")
+    public ApiMessage forgotPassword(@RequestBody PasswordResetRequest request) {
+        passwordReset.sendCode(request.email());
+        return new ApiMessage("If an account uses this email, a code is on its way.");
+    }
+
+    @PostMapping("/reset-password")
+    public ApiMessage resetPassword(@RequestBody PasswordResetRequest request) {
+        passwordReset.resetPassword(request.email(), request.code(), request.password());
+        return new ApiMessage("Your password has been changed.");
     }
 
     @PostMapping("/login")

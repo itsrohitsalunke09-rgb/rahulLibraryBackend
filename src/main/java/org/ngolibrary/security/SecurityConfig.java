@@ -43,7 +43,8 @@ public class SecurityConfig {
                 .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
                 .and()
                 .authorizeRequests()
-                .antMatchers("/api/auth/login", "/api/auth/register", "/actuator/health").permitAll()
+                .antMatchers("/api/auth/login", "/api/auth/register", "/api/auth/forgot-password",
+                        "/api/auth/reset-password", "/actuator/health").permitAll()
                 .antMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .anyRequest().authenticated()
                 .and()

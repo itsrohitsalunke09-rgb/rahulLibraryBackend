@@ -1,6 +1,7 @@
 package org.ngolibrary.domain;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -47,6 +48,13 @@ public class UserAccount {
 
     @Column(nullable = false)
     private boolean active = true;
+
+    /** Forgot password: hash of the emailed code, when it stops working, and wrong tries so far. */
+    private String resetCodeHash;
+
+    private LocalDateTime resetCodeExpiresAt;
+
+    private Integer resetCodeAttempts;
 
     public Long getId() {
         return id;
@@ -126,5 +134,29 @@ public class UserAccount {
 
     public void setActive(boolean active) {
         this.active = active;
+    }
+
+    public String getResetCodeHash() {
+        return resetCodeHash;
+    }
+
+    public void setResetCodeHash(String resetCodeHash) {
+        this.resetCodeHash = resetCodeHash;
+    }
+
+    public LocalDateTime getResetCodeExpiresAt() {
+        return resetCodeExpiresAt;
+    }
+
+    public void setResetCodeExpiresAt(LocalDateTime resetCodeExpiresAt) {
+        this.resetCodeExpiresAt = resetCodeExpiresAt;
+    }
+
+    public int getResetCodeAttempts() {
+        return resetCodeAttempts == null ? 0 : resetCodeAttempts;
+    }
+
+    public void setResetCodeAttempts(Integer resetCodeAttempts) {
+        this.resetCodeAttempts = resetCodeAttempts;
     }
 }
