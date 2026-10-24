@@ -57,7 +57,7 @@ class NewsControllerTest {
     @Test
     @WithMockUser(roles = "STUDENT")
     void studentCanList() throws Exception {
-        when(newsService.list(0, 10)).thenReturn(new PageImpl<>(List.of()));
+        when(newsService.list(0, 10, null)).thenReturn(new PageImpl<>(List.of()));
         mvc.perform(get("/api/news")).andExpect(status().isOk());
     }
 

@@ -39,9 +39,12 @@ public class NewsService {
     }
 
     @Transactional(readOnly = true)
-    public Page<NewsStoryResponse> list(int page, int size) {
+    public Page<NewsStoryResponse> list(int page, int size, String q) {
         PageRequest paging = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), 50));
-        return stories.findAllByOrderByEventDateDescIdDesc(paging).map(NewsStoryResponse::from);
+        Page<NewsStory> found = q == null || q.isBlank()
+                ? stories.findAllByOrderByEventDateDescIdDesc(paging)
+                : stories.findByHeadlineContainingIgnoreCaseOrderByEventDateDescIdDesc(q.trim(), paging);
+        return found.map(NewsStoryResponse::from);
     }
 
     @Transactional(readOnly = true)

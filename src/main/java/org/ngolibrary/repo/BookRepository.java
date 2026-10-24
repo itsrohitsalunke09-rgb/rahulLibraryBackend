@@ -72,6 +72,16 @@ public interface BookRepository extends JpaRepository<Book, Long> {
         long getBooks();
     }
 
+    /** Takes one copy off the shelf in a single statement, so two staff can't lend the last copy twice. 0 = none left. */
+    @Modifying
+    @Query("UPDATE Book b SET b.availableCopies = b.availableCopies - 1 WHERE b.id = :id AND b.availableCopies > 0")
+    int takeCopy(@Param("id") Long id);
+
+    /** Puts one copy back on the shelf in a single statement. */
+    @Modifying
+    @Query("UPDATE Book b SET b.availableCopies = b.availableCopies + 1 WHERE b.id = :id")
+    int returnCopy(@Param("id") Long id);
+
     @Query("SELECT count(b) as titles, coalesce(sum(b.totalCopies), 0) as totalCopies, "
             + "coalesce(sum(b.availableCopies), 0) as availableCopies FROM Book b")
     Totals totals();

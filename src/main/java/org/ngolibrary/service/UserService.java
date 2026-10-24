@@ -2,6 +2,7 @@ package org.ngolibrary.service;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -32,12 +33,11 @@ public class UserService {
         this.issues = issues;
     }
 
-    public List<UserResponse> list(Role role) {
-        List<UserAccount> accounts = role == null ? users.findAll() : users.findByRole(role);
-        return accounts.stream().map(UserResponse::from).collect(Collectors.toList());
-    }
-
-    public Page<UserResponse> listPaged(Role role, Pageable pageable) {
+    public Page<UserResponse> listPaged(Role role, String q, Pageable pageable) {
+        if (q != null && !q.isBlank()) {
+            List<Role> roles = role == null ? List.of(Role.values()) : List.of(role);
+            return users.search(roles, q.trim(), pageable).map(UserResponse::from);
+        }
         if (role == null) {
             return users.findAll(pageable).map(UserResponse::from);
         }
@@ -102,8 +102,8 @@ public class UserService {
         if (request.getDateOfBirth() != null && !request.getDateOfBirth().isBlank()) {
             try {
                 user.setDateOfBirth(LocalDate.parse(request.getDateOfBirth(), DateTimeFormatter.ISO_LOCAL_DATE));
-            } catch (Exception ignored) {
-                // ignore invalid date format
+            } catch (DateTimeParseException e) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Date of birth must be a date like 2010-05-31");
             }
         }
         if (request.getAddress() != null) {

@@ -39,8 +39,9 @@ public class UserController {
 
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN')")
-    public Page<UserResponse> list(@RequestParam(required = false) Role role, Pageable pageable) {
-        return userService.listPaged(role, pageable);
+    public Page<UserResponse> list(@RequestParam(required = false) Role role,
+                                   @RequestParam(required = false) String q, Pageable pageable) {
+        return userService.listPaged(role, q, pageable);
     }
 
     @GetMapping("/students")

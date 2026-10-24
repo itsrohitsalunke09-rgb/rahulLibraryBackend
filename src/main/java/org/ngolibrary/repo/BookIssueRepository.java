@@ -27,8 +27,6 @@ public interface BookIssueRepository extends JpaRepository<BookIssue, Long> {
     @EntityGraph(attributePaths = {"book", "student", "issuedBy"})
     Optional<BookIssue> findById(Long id);
 
-    @EntityGraph(attributePaths = {"book", "student", "issuedBy"})
-    List<BookIssue> findByStudentOrderByIssueDateDesc(UserAccount student);
 
     @EntityGraph(attributePaths = {"book", "student", "issuedBy"})
     @Query(value = "SELECT bi FROM BookIssue bi WHERE bi.student = :student ORDER BY bi.issueDate DESC",

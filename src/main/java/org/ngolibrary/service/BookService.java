@@ -73,7 +73,14 @@ public class BookService {
         if (!books.existsById(id)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Book not found");
         }
-        // Delete all associated issues first (cascade delete)
+        // Keep track of copies still with students: those loans must be returned first.
+        long out = issues.countByBookIdAndStatus(id, IssueStatus.ISSUED);
+        if (out > 0) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Cannot delete this book because " + out + " cop" + (out == 1 ? "y is" : "ies are")
+                            + " still issued. Please mark them returned first.");
+        }
+        // Only returned loans are left; they go with the book.
         issues.deleteByBookId(id);
         books.deleteById(id);
     }

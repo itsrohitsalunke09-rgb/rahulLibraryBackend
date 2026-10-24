@@ -14,8 +14,6 @@ import org.springframework.data.repository.query.Param;
 public interface UserAccountRepository extends JpaRepository<UserAccount, Long> {
     Optional<UserAccount> findByUsername(String username);
     boolean existsByUsername(String username);
-    List<UserAccount> findByRole(Role role);
-    List<UserAccount> findByRoleAndActiveTrue(Role role);
     long countByRole(Role role);
 
     @Query("SELECT u FROM UserAccount u WHERE u.role = :role")
@@ -27,4 +25,12 @@ public interface UserAccountRepository extends JpaRepository<UserAccount, Long> 
             + "OR lower(u.email) LIKE lower(concat(:q, '%')) "
             + "OR lower(u.phone) LIKE lower(concat(:q, '%')))")
     List<UserAccount> searchStudents(@Param("q") String q);
+
+    /** Accounts of the given roles (active or not) whose name, username, email or phone starts with q. */
+    @Query("SELECT u FROM UserAccount u WHERE u.role IN :roles AND "
+            + "(lower(u.fullName) LIKE lower(concat(:q, '%')) "
+            + "OR lower(u.username) LIKE lower(concat(:q, '%')) "
+            + "OR lower(u.email) LIKE lower(concat(:q, '%')) "
+            + "OR lower(u.phone) LIKE lower(concat(:q, '%')))")
+    Page<UserAccount> search(@Param("roles") List<Role> roles, @Param("q") String q, Pageable pageable);
 }

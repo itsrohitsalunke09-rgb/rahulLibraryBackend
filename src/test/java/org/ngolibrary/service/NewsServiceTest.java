@@ -6,12 +6,14 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -25,6 +27,8 @@ import org.ngolibrary.dto.NewsStoryRequest;
 import org.ngolibrary.dto.NewsStoryResponse;
 import org.ngolibrary.repo.NewsPhotoRepository;
 import org.ngolibrary.repo.NewsStoryRepository;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.server.ResponseStatusException;
@@ -254,5 +258,18 @@ class NewsServiceTest {
         NewsStoryRequest req = valid();
         req.setTemplate("POSTER");
         assertBadRequest("Unknown template", () -> service.update(7L, req, null));
+    }
+
+    @Test
+    void searchesHeadlinesOnlyWhenAQueryIsGiven() {
+        when(stories.findAllByOrderByEventDateDescIdDesc(any(Pageable.class))).thenReturn(new PageImpl<>(List.of()));
+        when(stories.findByHeadlineContainingIgnoreCaseOrderByEventDateDescIdDesc(any(), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of()));
+
+        service.list(0, 10, " ");
+        verify(stories).findAllByOrderByEventDateDescIdDesc(any(Pageable.class));
+
+        service.list(0, 10, " book fair ");
+        verify(stories).findByHeadlineContainingIgnoreCaseOrderByEventDateDescIdDesc(eq("book fair"), any(Pageable.class));
     }
 }

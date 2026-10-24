@@ -115,24 +115,4 @@ public class OverdueNotificationService {
             }
         }
     }
-
-    public void notifyForIssue(BookIssue issue) {
-        String phone = issue.getStudent().getPhone();
-        boolean hasContact = false;
-
-        if (phone != null && !phone.trim().isEmpty()) {
-            whatsAppService.sendOverdueNotification(
-                phone,
-                issue.getStudent().getFullName(),
-                issue.getBook().getTitle(),
-                issue.getDueDate().toString()
-            );
-            hasContact = true;
-        }
-
-        if (hasContact) {
-            issue.setLastOverdueNotificationDate(LocalDate.now());
-            issueRepository.save(issue);
-        }
-    }
 }

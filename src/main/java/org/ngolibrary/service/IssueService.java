@@ -39,16 +39,6 @@ public class IssueService {
     }
 
     @Transactional(readOnly = true)
-    public List<IssueResponse> all() {
-        return issues.findAll().stream().map(IssueResponse::from).collect(Collectors.toList());
-    }
-
-    @Transactional(readOnly = true)
-    public Page<IssueResponse> allPaged(Pageable pageable) {
-        return issues.findAll(pageable).map(IssueResponse::from);
-    }
-
-    @Transactional(readOnly = true)
     public Page<IssueResponse> allPaged(Pageable pageable, IssueStatus status, String q) {
         if (q != null && !q.trim().isEmpty()) {
             return issues.searchByBookTitleOrStudentName(q.trim(), pageable).map(IssueResponse::from);
@@ -102,17 +92,6 @@ public class IssueService {
     }
 
     @Transactional(readOnly = true)
-    public long countByStatus(IssueStatus status) {
-        if (status == IssueStatus.ISSUED) {
-            return issues.countByStatusAndDueDateAfterOrEqual(IssueStatus.ISSUED, LocalDate.now());
-        }
-        if (status == IssueStatus.OVERDUE) {
-            return issues.countByStatusAndDueDateBefore(IssueStatus.ISSUED, LocalDate.now());
-        }
-        return issues.countByStatus(status);
-    }
-
-    @Transactional(readOnly = true)
     public long countByStatus(IssueStatus status, String q) {
         if (q != null && !q.trim().isEmpty()) {
             return issues.countByBookTitleOrStudentName(q.trim());
@@ -124,11 +103,6 @@ public class IssueService {
             return issues.countByStatusAndDueDateBefore(IssueStatus.ISSUED, LocalDate.now());
         }
         return issues.countByStatus(status);
-    }
-
-    @Transactional(readOnly = true)
-    public Map<String, Long> counts(String q) {
-        return counts(q, null);
     }
 
     /** Tab counts; with a year they count only issues made in that year. */
@@ -174,13 +148,6 @@ public class IssueService {
     }
 
     @Transactional(readOnly = true)
-    public List<IssueResponse> mine(UserAccount student) {
-        return issues.findByStudentOrderByIssueDateDesc(student).stream()
-                .map(IssueResponse::from)
-                .collect(Collectors.toList());
-    }
-
-    @Transactional(readOnly = true)
     public Page<IssueResponse> minePaged(UserAccount student, Pageable pageable) {
         return issues.findByStudentOrderByIssueDateDesc(student, pageable).map(IssueResponse::from);
     }
@@ -197,15 +164,12 @@ public class IssueService {
         if (!student.isActive()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Student account is inactive");
         }
-        if (book.getAvailableCopies() < 1) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No copies available");
-        }
         if (issues.existsByStudentAndBookIdAndStatus(student, book.getId(), IssueStatus.ISSUED)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Student already has this book issued");
         }
-
-        book.setAvailableCopies(book.getAvailableCopies() - 1);
-        books.save(book);
+        if (books.takeCopy(book.getId()) == 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No copies available");
+        }
 
         BookIssue issue = new BookIssue();
         issue.setBook(book);
@@ -226,15 +190,8 @@ public class IssueService {
         }
         issue.setStatus(IssueStatus.RETURNED);
         issue.setReturnDate(LocalDate.now());
-        Book book = issue.getBook();
-        book.setAvailableCopies(book.getAvailableCopies() + 1);
-        books.save(book);
+        books.returnCopy(issue.getBook().getId());
         return IssueResponse.from(issues.save(issue));
-    }
-
-    @Transactional(readOnly = true)
-    public DashboardResponse dashboard() {
-        return dashboard(null);
     }
 
     /**
