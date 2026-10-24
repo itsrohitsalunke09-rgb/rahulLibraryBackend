@@ -12,7 +12,7 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Table;
 
-/** A news / event story shown on the News and events page. The photo lives in {@link NewsPhoto}. */
+/** A news / event story shown on the News and events page. The photo lives in photo storage (see NewsService.photoPath). */
 @Entity
 @Table(name = "news_stories")
 public class NewsStory {

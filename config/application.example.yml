@@ -9,3 +9,5 @@ spring:
 app:
   jwt:
     secret: <random string, at least 32 characters>
+  storage:
+    key: <supabase-secret-key>

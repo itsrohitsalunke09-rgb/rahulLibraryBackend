@@ -4,7 +4,7 @@ import java.util.List;
 
 import javax.validation.Valid;
 
-import org.ngolibrary.domain.AadhaarPhoto;
+import org.ngolibrary.service.PhotoStorage;
 import org.ngolibrary.domain.Role;
 import org.ngolibrary.domain.UserAccount;
 import org.ngolibrary.dto.ProfileUpdateRequest;
@@ -95,11 +95,11 @@ public class UserController {
     @GetMapping("/{id}/aadhaar")
     @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN')")
     public ResponseEntity<byte[]> aadhaar(@PathVariable Long id) {
-        AadhaarPhoto photo = userService.aadhaarPhoto(id);
+        PhotoStorage.Photo photo = userService.aadhaarPhoto(id);
         return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(photo.getContentType()))
+                .contentType(MediaType.parseMediaType(photo.contentType()))
                 .header(HttpHeaders.CACHE_CONTROL, "no-store")
-                .body(photo.getData());
+                .body(photo.data());
     }
 
     @PutMapping(value = "/{id}/aadhaar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

@@ -19,13 +19,11 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import org.ngolibrary.domain.NewsPhoto;
 import org.ngolibrary.domain.NewsStory;
 import org.ngolibrary.domain.NewsTemplate;
 import org.ngolibrary.domain.UserAccount;
 import org.ngolibrary.dto.NewsStoryRequest;
 import org.ngolibrary.dto.NewsStoryResponse;
-import org.ngolibrary.repo.NewsPhotoRepository;
 import org.ngolibrary.repo.NewsStoryRepository;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -36,14 +34,14 @@ import org.springframework.web.server.ResponseStatusException;
 class NewsServiceTest {
 
     private NewsStoryRepository stories;
-    private NewsPhotoRepository photos;
+    private PhotoStorage photos;
     private NewsService service;
     private UserAccount author;
 
     @BeforeEach
     void setUp() {
         stories = mock(NewsStoryRepository.class);
-        photos = mock(NewsPhotoRepository.class);
+        photos = mock(PhotoStorage.class);
         when(stories.save(any(NewsStory.class))).thenAnswer(inv -> {
             NewsStory s = inv.getArgument(0);
             if (s.getId() == null) {
@@ -145,11 +143,9 @@ class NewsServiceTest {
         assertEquals(1, res.photoVersion());
         assertEquals("Asha Patil", res.createdByName());
         assertEquals("A caption", res.photoCaption());
-        ArgumentCaptor<NewsPhoto> cap = ArgumentCaptor.forClass(NewsPhoto.class);
-        verify(photos).save(cap.capture());
-        assertEquals(1L, cap.getValue().getStoryId());
-        assertEquals("image/jpeg", cap.getValue().getContentType());
-        assertTrue(java.util.Arrays.equals(bytes, cap.getValue().getData()));
+        ArgumentCaptor<byte[]> cap = ArgumentCaptor.forClass(byte[].class);
+        verify(photos).put(eq("news/1"), eq("image/jpeg"), cap.capture());
+        assertTrue(java.util.Arrays.equals(bytes, cap.getValue()));
     }
 
     @Test
@@ -158,8 +154,8 @@ class NewsServiceTest {
         NewsStoryResponse res = service.update(7L, valid(), null);
         assertTrue(res.hasPhoto());
         assertEquals(3, res.photoVersion());
-        verify(photos, never()).deleteById(any());
-        verify(photos, never()).save(any());
+        verify(photos, never()).delete(any());
+        verify(photos, never()).put(any(), any(), any());
     }
 
     @Test
@@ -168,7 +164,7 @@ class NewsServiceTest {
         NewsStoryResponse res = service.update(7L, valid(), jpeg(10));
         assertTrue(res.hasPhoto());
         assertEquals(4, res.photoVersion());
-        verify(photos).save(any(NewsPhoto.class));
+        verify(photos).put(eq("news/7"), eq("image/jpeg"), any());
     }
 
     @Test
@@ -180,7 +176,7 @@ class NewsServiceTest {
         NewsStoryResponse res = service.update(7L, req, null);
         assertFalse(res.hasPhoto());
         assertNull(res.photoCaption());
-        verify(photos).deleteById(7L);
+        verify(photos).delete("news/7");
     }
 
     @Test

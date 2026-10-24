@@ -1,6 +1,6 @@
 package org.ngolibrary.web;
 
-import org.ngolibrary.domain.NewsPhoto;
+import org.ngolibrary.service.PhotoStorage;
 import org.ngolibrary.dto.NewsStoryRequest;
 import org.ngolibrary.dto.NewsStoryResponse;
 import org.ngolibrary.service.AuthService;
@@ -50,11 +50,11 @@ public class NewsController {
 
     @GetMapping("/{id}/photo")
     public ResponseEntity<byte[]> photo(@PathVariable Long id) {
-        NewsPhoto photo = newsService.photo(id);
+        PhotoStorage.Photo photo = newsService.photo(id);
         return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(photo.getContentType()))
+                .contentType(MediaType.parseMediaType(photo.contentType()))
                 .header(HttpHeaders.CACHE_CONTROL, "private, max-age=31536000")
-                .body(photo.getData());
+                .body(photo.data());
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

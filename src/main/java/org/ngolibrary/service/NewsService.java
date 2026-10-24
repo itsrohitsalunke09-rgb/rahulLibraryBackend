@@ -4,13 +4,11 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.Set;
 
-import org.ngolibrary.domain.NewsPhoto;
 import org.ngolibrary.domain.NewsStory;
 import org.ngolibrary.domain.NewsTemplate;
 import org.ngolibrary.domain.UserAccount;
 import org.ngolibrary.dto.NewsStoryRequest;
 import org.ngolibrary.dto.NewsStoryResponse;
-import org.ngolibrary.repo.NewsPhotoRepository;
 import org.ngolibrary.repo.NewsStoryRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -20,7 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
-/** News and events stories, each with an optional photo stored in its own table. */
+/** News and events stories, each with an optional photo kept in photo storage. */
 @Service
 public class NewsService {
 
@@ -31,11 +29,16 @@ public class NewsService {
     public static final Set<String> PHOTO_TYPES = Set.of("image/jpeg", "image/png", "image/webp");
 
     private final NewsStoryRepository stories;
-    private final NewsPhotoRepository photos;
+    private final PhotoStorage photos;
 
-    public NewsService(NewsStoryRepository stories, NewsPhotoRepository photos) {
+    public NewsService(NewsStoryRepository stories, PhotoStorage photos) {
         this.stories = stories;
         this.photos = photos;
+    }
+
+    /** Where a story's photo is stored. */
+    public static String photoPath(Long storyId) {
+        return "news/" + storyId;
     }
 
     @Transactional(readOnly = true)
@@ -100,7 +103,7 @@ public class NewsService {
             storePhoto(id, photo);
         } else if (req.isRemovePhoto() && story.isHasPhoto()) {
             story.setHasPhoto(false);
-            photos.deleteById(id);
+            photos.delete(photoPath(id));
         }
         if (!story.isHasPhoto()) {
             story.setPhotoCaption(null);
@@ -112,14 +115,13 @@ public class NewsService {
     public void delete(Long id) {
         NewsStory story = find(id);
         if (story.isHasPhoto()) {
-            photos.deleteById(id);
+            photos.delete(photoPath(id));
         }
         stories.delete(story);
     }
 
-    @Transactional(readOnly = true)
-    public NewsPhoto photo(Long id) {
-        return photos.findById(id)
+    public PhotoStorage.Photo photo(Long id) {
+        return photos.get(photoPath(id))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Photo not found"));
     }
 
@@ -182,15 +184,13 @@ public class NewsService {
     }
 
     private void storePhoto(Long storyId, MultipartFile file) {
-        NewsPhoto photo = new NewsPhoto();
-        photo.setStoryId(storyId);
-        photo.setContentType(file.getContentType().toLowerCase());
+        byte[] data;
         try {
-            photo.setData(file.getBytes());
+            data = file.getBytes();
         } catch (IOException e) {
             throw bad("The photo could not be read. Please try again.");
         }
-        photos.save(photo);
+        photos.put(photoPath(storyId), file.getContentType().toLowerCase(), data);
     }
 
     private static String trimmed(String value) {

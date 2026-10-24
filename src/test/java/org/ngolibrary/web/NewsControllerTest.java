@@ -14,7 +14,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
-import org.ngolibrary.domain.NewsPhoto;
+import org.ngolibrary.service.PhotoStorage;
 import org.ngolibrary.domain.UserAccount;
 import org.ngolibrary.security.AppUserDetailsService;
 import org.ngolibrary.security.JwtService;
@@ -96,9 +96,7 @@ class NewsControllerTest {
     @Test
     @WithMockUser(roles = "STUDENT")
     void photoHasCacheHeader() throws Exception {
-        NewsPhoto photo = new NewsPhoto();
-        photo.setContentType("image/jpeg");
-        photo.setData(new byte[] {1, 2, 3});
+        PhotoStorage.Photo photo = new PhotoStorage.Photo("image/jpeg", new byte[] {1, 2, 3});
         when(newsService.photo(1L)).thenReturn(photo);
         mvc.perform(get("/api/news/1/photo"))
                 .andExpect(status().isOk())

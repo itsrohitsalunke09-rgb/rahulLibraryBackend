@@ -39,6 +39,13 @@ app:
     secret: ${JWT_SECRET}
     expiration-ms: 86400000
 
+  # News and Aadhaar photos live in a private Supabase Storage bucket (created on first start).
+  # Set SUPABASE_SECRET_KEY (Supabase dashboard > Settings > API Keys > secret key) on Render.
+  storage:
+    url: ${SUPABASE_URL:https://eviwctkgjxqqfpserniz.supabase.co}
+    key: ${SUPABASE_SECRET_KEY:}
+    bucket: photos
+
   cors:
     # https://localhost = the Android app (Capacitor), http://localhost:8100 = `ionic serve`
     allowed-origins: "http://localhost:4200,http://127.0.0.1:4200,https://rahullibraryshindewadi.vercel.app,https://localhost,http://localhost:8100"

@@ -16,8 +16,6 @@ import org.ngolibrary.domain.Role;
 import org.ngolibrary.domain.UserAccount;
 import org.ngolibrary.dto.ProfileUpdateRequest;
 import org.ngolibrary.dto.UserRequest;
-import org.ngolibrary.domain.AadhaarPhoto;
-import org.ngolibrary.repo.AadhaarPhotoRepository;
 import org.ngolibrary.repo.BookIssueRepository;
 import org.springframework.mock.web.MockMultipartFile;
 import org.ngolibrary.repo.UserAccountRepository;
@@ -28,15 +26,15 @@ import org.springframework.web.server.ResponseStatusException;
 class UserServiceTest {
 
     private UserAccountRepository users;
-    private AadhaarPhotoRepository aadhaarPhotos;
+    private PhotoStorage photos;
     private UserService service;
     private UserAccount librarian;
 
     @BeforeEach
     void setUp() {
         users = mock(UserAccountRepository.class);
-        aadhaarPhotos = mock(AadhaarPhotoRepository.class);
-        service = new UserService(users, mock(PasswordEncoder.class), mock(BookIssueRepository.class), aadhaarPhotos);
+        photos = mock(PhotoStorage.class);
+        service = new UserService(users, mock(PasswordEncoder.class), mock(BookIssueRepository.class), photos);
         librarian = account(1L, Role.LIBRARIAN);
     }
 
@@ -96,17 +94,14 @@ class UserServiceTest {
     void storesAnAadhaarPhotoForTheUser() {
         when(users.findById(2L)).thenReturn(Optional.of(account(2L, Role.STUDENT)));
         service.saveAadhaarPhoto(2L, photo("image/jpeg"), librarian);
-        org.mockito.ArgumentCaptor<AadhaarPhoto> saved = org.mockito.ArgumentCaptor.forClass(AadhaarPhoto.class);
-        verify(aadhaarPhotos).save(saved.capture());
-        assertEquals(2L, saved.getValue().getUserId());
-        assertEquals("image/jpeg", saved.getValue().getContentType());
+        verify(photos).put("aadhaar/2", "image/jpeg", new byte[] {1, 2, 3});
     }
 
     @Test
     void rejectsAnAadhaarFileThatIsNotAPhoto() {
         when(users.findById(2L)).thenReturn(Optional.of(account(2L, Role.STUDENT)));
         assertStatus(HttpStatus.BAD_REQUEST, () -> service.saveAadhaarPhoto(2L, photo("application/pdf"), librarian));
-        verify(aadhaarPhotos, never()).save(any());
+        verify(photos, never()).put(any(), any(), any());
     }
 
     @Test
@@ -120,8 +115,17 @@ class UserServiceTest {
     void deletingAnAccountDeletesItsAadhaarPhoto() {
         when(users.existsById(2L)).thenReturn(true);
         when(users.findById(2L)).thenReturn(Optional.of(account(2L, Role.LIBRARIAN)));
-        when(aadhaarPhotos.existsById(2L)).thenReturn(true);
         service.delete(2L);
-        verify(aadhaarPhotos).deleteById(2L);
+        verify(photos).delete("aadhaar/2");
+    }
+
+    @Test
+    void accountIsStillDeletedWhenPhotoStorageIsDown() {
+        when(users.existsById(2L)).thenReturn(true);
+        when(users.findById(2L)).thenReturn(Optional.of(account(2L, Role.LIBRARIAN)));
+        org.mockito.Mockito.doThrow(new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE))
+                .when(photos).delete("aadhaar/2");
+        service.delete(2L);
+        verify(users).deleteById(2L);
     }
 }

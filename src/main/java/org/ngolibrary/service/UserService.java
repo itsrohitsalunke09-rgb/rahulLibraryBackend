@@ -11,8 +11,7 @@ import org.ngolibrary.domain.UserAccount;
 import org.ngolibrary.dto.ProfileUpdateRequest;
 import org.ngolibrary.dto.UserRequest;
 import org.ngolibrary.dto.UserResponse;
-import org.ngolibrary.domain.AadhaarPhoto;
-import org.ngolibrary.repo.AadhaarPhotoRepository;
+import org.ngolibrary.service.PhotoStorage.Photo;
 import org.ngolibrary.repo.BookIssueRepository;
 import org.ngolibrary.repo.UserAccountRepository;
 import org.springframework.data.domain.Page;
@@ -29,14 +28,14 @@ public class UserService {
     private final UserAccountRepository users;
     private final PasswordEncoder encoder;
     private final BookIssueRepository issues;
-    private final AadhaarPhotoRepository aadhaarPhotos;
+    private final PhotoStorage photos;
 
     public UserService(UserAccountRepository users, PasswordEncoder encoder, BookIssueRepository issues,
-                       AadhaarPhotoRepository aadhaarPhotos) {
+                       PhotoStorage photos) {
         this.users = users;
         this.encoder = encoder;
         this.issues = issues;
-        this.aadhaarPhotos = aadhaarPhotos;
+        this.photos = photos;
     }
 
     public Page<UserResponse> listPaged(Role role, String q, Pageable pageable) {
@@ -87,8 +86,8 @@ public class UserService {
         return user;
     }
 
-    public AadhaarPhoto aadhaarPhoto(Long userId) {
-        return aadhaarPhotos.findById(userId)
+    public Photo aadhaarPhoto(Long userId) {
+        return photos.get(aadhaarPath(userId))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No Aadhaar card photo"));
     }
 
@@ -105,22 +104,23 @@ public class UserService {
         if (!NewsService.PHOTO_TYPES.contains(type)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Photo must be a JPEG, PNG or WebP image");
         }
-        AadhaarPhoto photo = new AadhaarPhoto();
-        photo.setUserId(userId);
-        photo.setContentType(type);
+        byte[] data;
         try {
-            photo.setData(file.getBytes());
+            data = file.getBytes();
         } catch (java.io.IOException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The photo could not be read. Please try again.");
         }
-        aadhaarPhotos.save(photo);
+        photos.put(aadhaarPath(userId), type, data);
     }
 
     public void deleteAadhaarPhoto(Long userId, UserAccount currentUser) {
         editable(userId, currentUser);
-        if (aadhaarPhotos.existsById(userId)) {
-            aadhaarPhotos.deleteById(userId);
-        }
+        photos.delete(aadhaarPath(userId));
+    }
+
+    /** Where a user's Aadhaar card photo is stored. */
+    public static String aadhaarPath(Long userId) {
+        return "aadhaar/" + userId;
     }
 
     private void checkCanAssignRole(UserAccount currentUser, Role role) {
@@ -177,8 +177,10 @@ public class UserService {
         }
         users.deleteById(id);
         // After the account is gone, so a refused delete keeps the card; an ID photo must not outlive its account.
-        if (aadhaarPhotos.existsById(id)) {
-            aadhaarPhotos.deleteById(id);
+        try {
+            photos.delete(aadhaarPath(id));
+        } catch (ResponseStatusException e) {
+            // The account is already deleted; PhotoStorage has logged the path so the file can be removed by hand.
         }
     }
 }
