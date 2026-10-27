@@ -80,12 +80,20 @@ class NewsControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "LIBRARIAN")
-    void librarianCreates() throws Exception {
+    @WithMockUser(roles = "ADMIN")
+    void adminCreates() throws Exception {
         UserAccount author = new UserAccount();
         when(authService.current(any(Authentication.class))).thenReturn(author);
         mvc.perform(multipart("/api/news").file(storyPart())).andExpect(status().isCreated());
         verify(newsService).create(any(), eq(null), eq(author));
+    }
+
+    @Test
+    @WithMockUser(roles = "LIBRARIAN")
+    void librarianCannotChangeNews() throws Exception {
+        mvc.perform(multipart("/api/news").file(storyPart())).andExpect(status().isForbidden());
+        mvc.perform(multipart(HttpMethod.PUT, "/api/news/1").file(storyPart())).andExpect(status().isForbidden());
+        mvc.perform(delete("/api/news/1")).andExpect(status().isForbidden());
     }
 
     @Test

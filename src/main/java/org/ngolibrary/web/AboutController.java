@@ -47,7 +47,7 @@ public class AboutController {
     }
 
     @PutMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public String save(@RequestBody String body) {
         if (body == null || body.length() > MAX_LENGTH) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The About Us text is too long.");

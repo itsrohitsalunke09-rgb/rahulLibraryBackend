@@ -16,6 +16,10 @@ public final class PeriodicalDtos {
                                     Boolean active) {
     }
 
+    /** What the catalog shows anyone signed in: no prices. */
+    public record PeriodicalSummary(Long id, String name, String language, PeriodicalFrequency frequency) {
+    }
+
     /** One line of a day's register: whether the copy came and what it cost. */
     public record RegisterRow(Long periodicalId, String name, String language, PeriodicalFrequency frequency,
                               BigDecimal defaultPrice, boolean arrived, BigDecimal price) {

@@ -63,7 +63,15 @@ class AboutControllerTest {
 
     @Test
     @WithMockUser(roles = "LIBRARIAN")
-    void staffSaveAJsonObject() throws Exception {
+    void librarianCannotEdit() throws Exception {
+        mvc.perform(put("/api/about").contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isForbidden());
+        verify(content, never()).save(any());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void adminSavesAJsonObject() throws Exception {
         when(content.findById("about")).thenReturn(Optional.empty());
         when(content.save(any(SiteContent.class))).thenAnswer(inv -> inv.getArgument(0));
         mvc.perform(put("/api/about").contentType(MediaType.APPLICATION_JSON).content("{ \"title\" : \"Rahul\" }"))

@@ -8,6 +8,7 @@ import org.ngolibrary.domain.Periodical;
 import org.ngolibrary.dto.PeriodicalDtos.DayRegister;
 import org.ngolibrary.dto.PeriodicalDtos.MonthReport;
 import org.ngolibrary.dto.PeriodicalDtos.PeriodicalRequest;
+import org.ngolibrary.dto.PeriodicalDtos.PeriodicalSummary;
 import org.ngolibrary.dto.PeriodicalDtos.RegisterEntry;
 import org.ngolibrary.service.PeriodicalService;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -22,7 +23,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/** Newspapers & magazines and their daily arrival register. Staff only. */
+/** Newspapers & magazines (the master: admin only), their daily register and report (all staff), and the read-only subscribed list (everyone). */
 @RestController
 @RequestMapping("/api/periodicals")
 @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN')")
@@ -35,21 +36,32 @@ public class PeriodicalController {
     }
 
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public List<Periodical> list() {
         return service.list();
     }
 
+    /** For the catalog's newspapers tab, so students can see it too. */
+    @GetMapping("/subscribed")
+    @PreAuthorize("isAuthenticated()")
+    public List<PeriodicalSummary> subscribed() {
+        return service.subscribed();
+    }
+
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public Periodical create(@RequestBody PeriodicalRequest request) {
         return service.create(request);
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public Periodical update(@PathVariable Long id, @RequestBody PeriodicalRequest request) {
         return service.update(id, request);
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public void delete(@PathVariable Long id) {
         service.delete(id);
     }

@@ -59,7 +59,7 @@ public class NewsController {
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public NewsStoryResponse create(@RequestPart("story") NewsStoryRequest story,
             @RequestPart(value = "photo", required = false) MultipartFile photo,
             Authentication authentication) {
@@ -67,7 +67,7 @@ public class NewsController {
     }
 
     @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public NewsStoryResponse update(@PathVariable Long id, @RequestPart("story") NewsStoryRequest story,
             @RequestPart(value = "photo", required = false) MultipartFile photo) {
         return newsService.update(id, story, photo);
@@ -75,7 +75,7 @@ public class NewsController {
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public void delete(@PathVariable Long id) {
         newsService.delete(id);
     }

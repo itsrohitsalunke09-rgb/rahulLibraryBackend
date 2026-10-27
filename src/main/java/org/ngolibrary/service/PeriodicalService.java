@@ -16,6 +16,7 @@ import org.ngolibrary.domain.PeriodicalFrequency;
 import org.ngolibrary.dto.PeriodicalDtos.DayRegister;
 import org.ngolibrary.dto.PeriodicalDtos.MonthReport;
 import org.ngolibrary.dto.PeriodicalDtos.PeriodicalRequest;
+import org.ngolibrary.dto.PeriodicalDtos.PeriodicalSummary;
 import org.ngolibrary.dto.PeriodicalDtos.RegisterEntry;
 import org.ngolibrary.dto.PeriodicalDtos.RegisterRow;
 import org.ngolibrary.dto.PeriodicalDtos.ReportRow;
@@ -42,6 +43,13 @@ public class PeriodicalService {
 
     public List<Periodical> list() {
         return periodicals.findAllByOrderByActiveDescNameAsc();
+    }
+
+    /** The subscribed ones, by name. */
+    public List<PeriodicalSummary> subscribed() {
+        return list().stream().filter(Periodical::isActive)
+                .map(p -> new PeriodicalSummary(p.getId(), p.getName(), p.getLanguage(), p.getFrequency()))
+                .toList();
     }
 
     public Periodical create(PeriodicalRequest request) {

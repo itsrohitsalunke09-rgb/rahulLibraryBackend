@@ -36,25 +36,25 @@ public class BookCategoryController {
 
     /** Categories typed on books before the master existed, not matching any master name. */
     @GetMapping("/unlinked")
-    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public List<BookRepository.UnlinkedCategory> unlinked() {
         return categoryService.unlinked();
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public BookCategory create(@Valid @RequestBody BookCategoryRequest request) {
         return categoryService.create(request);
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public BookCategory update(@PathVariable Long id, @Valid @RequestBody BookCategoryRequest request) {
         return categoryService.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public void delete(@PathVariable Long id) {
         categoryService.delete(id);
     }
