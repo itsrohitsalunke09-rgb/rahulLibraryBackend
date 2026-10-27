@@ -45,6 +45,7 @@ public class SecurityConfig {
                 .authorizeRequests()
                 .antMatchers("/api/auth/login", "/api/auth/register", "/api/auth/forgot-password",
                         "/api/auth/reset-password", "/actuator/health").permitAll()
+                .antMatchers(HttpMethod.GET, "/api/about").permitAll()
                 .antMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .anyRequest().authenticated()
                 .and()
