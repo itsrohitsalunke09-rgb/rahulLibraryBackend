@@ -52,7 +52,7 @@ public class BookController {
             @RequestParam(defaultValue = "asc") String direction) {
         if ("registrationNumber".equals(sort)) {
             // Registration numbers are text; this order puts 2 before 10.
-            return bookService.listPagedByRegistrationNumber(q, PageRequest.of(page, size));
+            return bookService.listPagedByRegistrationNumber(q, PageRequest.of(page, size), "desc".equalsIgnoreCase(direction));
         }
         Pageable pageable = PageRequest.of(page, size, Sort.Direction.fromString(direction), sort);
         return bookService.listPaged(q, pageable);
