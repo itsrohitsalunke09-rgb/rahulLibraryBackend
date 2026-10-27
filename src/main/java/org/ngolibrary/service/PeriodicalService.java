@@ -122,21 +122,26 @@ public class PeriodicalService {
         LocalDate countUntil = to.isAfter(today) ? today : to;
         long daysSoFar = countUntil.isBefore(from) ? 0 : ChronoUnit.DAYS.between(from, countUntil) + 1;
 
-        Map<Long, PeriodicalArrivalRepository.Totals> totals = arrivals.totalsBetween(from, to).stream()
-                .collect(Collectors.toMap(PeriodicalArrivalRepository.Totals::getPeriodicalId, Function.identity()));
+        // Price paid per paper per day of the month (null = no copy that day).
+        Map<Long, BigDecimal[]> byDay = new java.util.HashMap<>();
+        for (PeriodicalArrival a : arrivals.findByDateBetween(from, to)) {
+            byDay.computeIfAbsent(a.getPeriodical().getId(), id -> new BigDecimal[month.lengthOfMonth()])
+                    [a.getDate().getDayOfMonth() - 1] = a.getPrice();
+        }
         List<ReportRow> rows = new ArrayList<>();
         long totalIssues = 0;
         BigDecimal totalAmount = BigDecimal.ZERO;
         for (Periodical p : list()) {
-            PeriodicalArrivalRepository.Totals t = totals.get(p.getId());
-            if (!p.isActive() && t == null) {
+            BigDecimal[] days = byDay.get(p.getId());
+            if (!p.isActive() && days == null) {
                 continue;
             }
-            long issues = t == null ? 0 : t.getIssues();
-            BigDecimal amount = t == null ? BigDecimal.ZERO : t.getAmount();
+            List<BigDecimal> prices = java.util.Arrays.asList(days == null ? new BigDecimal[month.lengthOfMonth()] : days);
+            long issues = prices.stream().filter(java.util.Objects::nonNull).count();
+            BigDecimal amount = prices.stream().filter(java.util.Objects::nonNull).reduce(BigDecimal.ZERO, BigDecimal::add);
             Long missing = p.getFrequency() == PeriodicalFrequency.DAILY && p.isActive()
                     ? Math.max(0, daysSoFar - issues) : null;
-            rows.add(new ReportRow(p.getId(), p.getName(), p.getFrequency(), issues, amount, missing));
+            rows.add(new ReportRow(p.getId(), p.getName(), p.getFrequency(), issues, amount, missing, prices));
             totalIssues += issues;
             totalAmount = totalAmount.add(amount);
         }

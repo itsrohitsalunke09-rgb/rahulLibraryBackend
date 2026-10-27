@@ -27,9 +27,12 @@ public final class PeriodicalDtos {
     public record DayRegister(LocalDate date, List<RegisterRow> rows) {
     }
 
-    /** missingDays: days so far this month a daily paper didn't come (null for non-daily). */
+    /**
+     * missingDays: days so far this month a daily paper didn't come (null for non-daily).
+     * prices: one entry per day of the month (index 0 = the 1st), the price paid or null when no copy came.
+     */
     public record ReportRow(Long periodicalId, String name, PeriodicalFrequency frequency, long issues, BigDecimal amount,
-                            Long missingDays) {
+                            Long missingDays, List<BigDecimal> prices) {
     }
 
     public record MonthReport(String month, LocalDate from, LocalDate to, List<ReportRow> rows, long totalIssues,

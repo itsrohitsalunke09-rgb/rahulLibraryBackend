@@ -114,13 +114,25 @@ class PeriodicalServiceTest {
     @Test
     void reportTotalsCostAndCountsMissingDaysForDailyPapers() {
         YearMonth month = YearMonth.of(2026, 9); // a past month: all 30 days count
-        when(arrivals.totalsBetween(month.atDay(1), month.atEndOfMonth())).thenReturn(List.of(
-                totals(1L, 28, "180.00"), totals(2L, 1, "20.00")));
+        List<PeriodicalArrival> copies = new java.util.ArrayList<>();
+        for (int day = 1; day <= 28; day++) { // Sakal came every day but the 29th and 30th
+            copies.add(arrival(sakal, month.atDay(day), day % 7 == 0 ? "8.00" : "6.00"));
+        }
+        copies.add(arrival(lokrajya, month.atDay(5), "20.00"));
+        when(arrivals.findByDateBetween(month.atDay(1), month.atEndOfMonth())).thenReturn(copies);
+
         MonthReport report = service.report(month);
         assertEquals(29, report.totalIssues());
-        assertEquals(new BigDecimal("200.00"), report.totalAmount());
+        assertEquals(new BigDecimal("176.00"), report.rows().get(0).amount(), "24 × 6 + 4 Sundays × 8");
+        assertEquals(new BigDecimal("196.00"), report.totalAmount());
         assertEquals(2L, report.rows().get(0).missingDays(), "30 days, 28 copies");
         assertNull(report.rows().get(1).missingDays(), "monthly magazines have no missing days");
+
+        List<BigDecimal> sakalDays = report.rows().get(0).prices();
+        assertEquals(30, sakalDays.size(), "one entry per day of September");
+        assertEquals(new BigDecimal("8.00"), sakalDays.get(6), "the 7th");
+        assertNull(sakalDays.get(29), "no copy on the 30th");
+        assertEquals(new BigDecimal("20.00"), report.rows().get(1).prices().get(4));
     }
 
     @Test
@@ -142,13 +154,5 @@ class PeriodicalServiceTest {
         assertNull(created.getLanguage());
         assertEquals(new BigDecimal("0.00"), created.getPrice());
         assertTrue(created.isActive());
-    }
-
-    private static PeriodicalArrivalRepository.Totals totals(Long id, long issues, String amount) {
-        return new PeriodicalArrivalRepository.Totals() {
-            public Long getPeriodicalId() { return id; }
-            public long getIssues() { return issues; }
-            public BigDecimal getAmount() { return new BigDecimal(amount); }
-        };
     }
 }
