@@ -10,16 +10,21 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.ngolibrary.domain.MagazineReceipt;
 import org.ngolibrary.domain.Periodical;
 import org.ngolibrary.domain.PeriodicalArrival;
 import org.ngolibrary.domain.PeriodicalFrequency;
 import org.ngolibrary.dto.PeriodicalDtos.DayRegister;
+import org.ngolibrary.dto.PeriodicalDtos.MagazineCard;
 import org.ngolibrary.dto.PeriodicalDtos.MonthReport;
 import org.ngolibrary.dto.PeriodicalDtos.PeriodicalRequest;
 import org.ngolibrary.dto.PeriodicalDtos.PeriodicalSummary;
+import org.ngolibrary.dto.PeriodicalDtos.ReceiptRequest;
+import org.ngolibrary.dto.PeriodicalDtos.ReceiptView;
 import org.ngolibrary.dto.PeriodicalDtos.RegisterEntry;
 import org.ngolibrary.dto.PeriodicalDtos.RegisterRow;
 import org.ngolibrary.dto.PeriodicalDtos.ReportRow;
+import org.ngolibrary.repo.MagazineReceiptRepository;
 import org.ngolibrary.repo.PeriodicalArrivalRepository;
 import org.ngolibrary.repo.PeriodicalRepository;
 import org.springframework.http.HttpStatus;
@@ -27,18 +32,30 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-/** Newspapers & magazines, the daily arrival register, and the monthly report with costs. */
+/**
+ * Newspapers & magazines. Daily papers go in the daily register (a tick and a price per day) and the
+ * monthly report; weekly/fortnightly/monthly magazines are paid yearly and go in the magazine register,
+ * where each issue received is recorded with the period it covers.
+ */
 @Service
 public class PeriodicalService {
 
     static final BigDecimal MAX_PRICE = new BigDecimal("10000");
+    static final BigDecimal MAX_SUBSCRIPTION = new BigDecimal("1000000");
 
     private final PeriodicalRepository periodicals;
     private final PeriodicalArrivalRepository arrivals;
+    private final MagazineReceiptRepository receipts;
 
-    public PeriodicalService(PeriodicalRepository periodicals, PeriodicalArrivalRepository arrivals) {
+    public PeriodicalService(PeriodicalRepository periodicals, PeriodicalArrivalRepository arrivals,
+                             MagazineReceiptRepository receipts) {
         this.periodicals = periodicals;
         this.arrivals = arrivals;
+        this.receipts = receipts;
+    }
+
+    private static boolean daily(Periodical p) {
+        return p.getFrequency() == PeriodicalFrequency.DAILY;
     }
 
     public List<Periodical> list() {
@@ -67,14 +84,14 @@ public class PeriodicalService {
     /** Only one with no register entries can be deleted; otherwise switch it off to keep the history. */
     public void delete(Long id) {
         find(id);
-        if (arrivals.existsByPeriodicalId(id)) {
+        if (arrivals.existsByPeriodicalId(id) || receipts.existsByPeriodicalId(id)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "This one has register entries. Switch off \"Subscribed\" instead, so its history stays.");
         }
         periodicals.deleteById(id);
     }
 
-    /** The day's register: every subscribed newspaper/magazine, plus any old one that has an entry that day. */
+    /** The day's register: every subscribed daily paper, plus any old one that has an entry that day. */
     @Transactional(readOnly = true)
     public DayRegister register(LocalDate date) {
         Map<Long, PeriodicalArrival> entries = arrivals.findByDate(date).stream()
@@ -82,7 +99,7 @@ public class PeriodicalService {
         List<RegisterRow> rows = new ArrayList<>();
         for (Periodical p : list()) {
             PeriodicalArrival entry = entries.get(p.getId());
-            if (p.isActive() || entry != null) {
+            if (daily(p) && (p.isActive() || entry != null)) {
                 rows.add(new RegisterRow(p.getId(), p.getName(), p.getLanguage(), p.getFrequency(), p.getPrice(),
                         entry != null, entry != null ? entry.getPrice() : p.getPrice()));
             }
@@ -107,6 +124,9 @@ public class PeriodicalService {
                 continue;
             }
             Periodical p = find(e.periodicalId());
+            if (!daily(p)) {
+                throw bad("\"" + p.getName() + "\" is a magazine: record it in the magazine register.");
+            }
             if (entry == null) {
                 entry = new PeriodicalArrival();
                 entry.setPeriodical(p);
@@ -119,7 +139,7 @@ public class PeriodicalService {
     }
 
     /**
-     * Copies and cost per newspaper/magazine for a month. For daily papers it also counts the days
+     * Copies and cost per daily paper for a month. It also counts the days
      * (up to today) with no copy, so gaps show up when checking the vendor's bill.
      */
     @Transactional(readOnly = true)
@@ -141,7 +161,7 @@ public class PeriodicalService {
         BigDecimal totalAmount = BigDecimal.ZERO;
         for (Periodical p : list()) {
             BigDecimal[] days = byDay.get(p.getId());
-            if (!p.isActive() && days == null) {
+            if (!daily(p) || (!p.isActive() && days == null)) {
                 continue;
             }
             List<BigDecimal> prices = java.util.Arrays.asList(days == null ? new BigDecimal[month.lengthOfMonth()] : days);
@@ -154,6 +174,57 @@ public class PeriodicalService {
             totalAmount = totalAmount.add(amount);
         }
         return new MonthReport(month.toString(), from, to, rows, totalIssues, totalAmount);
+    }
+
+    /** The magazine register: every subscribed magazine (and any old one with issues), each with its receipts. */
+    @Transactional(readOnly = true)
+    public List<MagazineCard> magazines() {
+        Map<Long, List<ReceiptView>> byMagazine = new java.util.HashMap<>();
+        for (MagazineReceipt r : receipts.findAllByOrderByPeriodFromAsc()) {
+            byMagazine.computeIfAbsent(r.getPeriodical().getId(), id -> new ArrayList<>()).add(view(r));
+        }
+        return list().stream()
+                .filter(p -> !daily(p) && (p.isActive() || byMagazine.containsKey(p.getId())))
+                .map(p -> new MagazineCard(p.getId(), p.getName(), p.getLanguage(), p.getFrequency(),
+                        p.getSubscriptionAmount(), p.getSubscriptionStart(), p.getSubscriptionEnd(),
+                        byMagazine.getOrDefault(p.getId(), List.of())))
+                .toList();
+    }
+
+    /** Records one issue of a magazine and the period it covers (one or more months, or a week). */
+    @Transactional
+    public ReceiptView addReceipt(Long periodicalId, ReceiptRequest r) {
+        Periodical p = find(periodicalId);
+        if (daily(p)) {
+            throw bad("\"" + p.getName() + "\" is a daily paper: tick it in the daily register.");
+        }
+        if (r == null || r.receivedOn() == null || r.periodFrom() == null || r.periodTo() == null) {
+            throw bad("Enter the date it came and the period it covers.");
+        }
+        if (r.receivedOn().isAfter(LocalDate.now())) {
+            throw bad("The date it came can't be in the future.");
+        }
+        if (r.periodTo().isBefore(r.periodFrom())) {
+            throw bad("The period must end on or after its start.");
+        }
+        MagazineReceipt receipt = new MagazineReceipt();
+        receipt.setPeriodical(p);
+        receipt.setReceivedOn(r.receivedOn());
+        receipt.setPeriodFrom(r.periodFrom());
+        receipt.setPeriodTo(r.periodTo());
+        return view(receipts.save(receipt));
+    }
+
+    /** Removes a receipt recorded by mistake. */
+    public void deleteReceipt(Long id) {
+        if (!receipts.existsById(id)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Receipt not found");
+        }
+        receipts.deleteById(id);
+    }
+
+    private static ReceiptView view(MagazineReceipt r) {
+        return new ReceiptView(r.getId(), r.getReceivedOn(), r.getPeriodFrom(), r.getPeriodTo());
     }
 
     private void apply(Periodical p, PeriodicalRequest r) {
@@ -173,6 +244,35 @@ public class PeriodicalService {
         p.setFrequency(r.frequency());
         p.setPrice(price(r.price() == null ? BigDecimal.ZERO : r.price()));
         p.setActive(r.active() == null || r.active());
+        applySubscription(p, r);
+    }
+
+    /** Daily papers are paid per copy; magazines keep a yearly amount and the year it covers. */
+    private static void applySubscription(Periodical p, PeriodicalRequest r) {
+        if (daily(p)) {
+            p.setSubscriptionAmount(null);
+            p.setSubscriptionStart(null);
+            p.setSubscriptionEnd(null);
+            return;
+        }
+        BigDecimal amount = r.subscriptionAmount();
+        if (amount != null && (amount.signum() < 0 || amount.compareTo(MAX_SUBSCRIPTION) > 0)) {
+            throw bad("Enter a yearly amount between 0 and 10,00,000.");
+        }
+        LocalDate start = r.subscriptionStart();
+        LocalDate end = r.subscriptionEnd();
+        if (start == null && end != null) {
+            throw bad("Enter when the subscription starts.");
+        }
+        if (start != null && end == null) {
+            end = start.plusYears(1).minusDays(1);
+        }
+        if (start != null && end.isBefore(start)) {
+            throw bad("The subscription must end after it starts.");
+        }
+        p.setSubscriptionAmount(amount == null ? null : amount.setScale(2, java.math.RoundingMode.HALF_UP));
+        p.setSubscriptionStart(start);
+        p.setSubscriptionEnd(end);
     }
 
     private static BigDecimal price(BigDecimal value) {

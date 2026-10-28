@@ -6,14 +6,29 @@ import java.util.List;
 
 import org.ngolibrary.domain.PeriodicalFrequency;
 
-/** Request and response shapes for newspapers & magazines and their daily register. */
+/** Request and response shapes for newspapers & magazines, the daily register and the magazine register. */
 public final class PeriodicalDtos {
 
     private PeriodicalDtos() {
     }
 
+    /** subscription*: magazines only (paid yearly); a missing end is a year after the start. */
     public record PeriodicalRequest(String name, String language, PeriodicalFrequency frequency, BigDecimal price,
-                                    Boolean active) {
+                                    Boolean active, BigDecimal subscriptionAmount, LocalDate subscriptionStart,
+                                    LocalDate subscriptionEnd) {
+    }
+
+    /** A magazine issue received, covering periodFrom..periodTo (a week, a month, or several months combined). */
+    public record ReceiptRequest(LocalDate receivedOn, LocalDate periodFrom, LocalDate periodTo) {
+    }
+
+    public record ReceiptView(Long id, LocalDate receivedOn, LocalDate periodFrom, LocalDate periodTo) {
+    }
+
+    /** One weekly/fortnightly/monthly magazine with its subscription year and every issue received. */
+    public record MagazineCard(Long periodicalId, String name, String language, PeriodicalFrequency frequency,
+                               BigDecimal subscriptionAmount, LocalDate subscriptionStart, LocalDate subscriptionEnd,
+                               List<ReceiptView> receipts) {
     }
 
     /** What the catalog shows anyone signed in: no prices. */

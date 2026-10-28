@@ -6,9 +6,12 @@ import java.util.List;
 
 import org.ngolibrary.domain.Periodical;
 import org.ngolibrary.dto.PeriodicalDtos.DayRegister;
+import org.ngolibrary.dto.PeriodicalDtos.MagazineCard;
 import org.ngolibrary.dto.PeriodicalDtos.MonthReport;
 import org.ngolibrary.dto.PeriodicalDtos.PeriodicalRequest;
 import org.ngolibrary.dto.PeriodicalDtos.PeriodicalSummary;
+import org.ngolibrary.dto.PeriodicalDtos.ReceiptRequest;
+import org.ngolibrary.dto.PeriodicalDtos.ReceiptView;
 import org.ngolibrary.dto.PeriodicalDtos.RegisterEntry;
 import org.ngolibrary.service.PeriodicalService;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -23,7 +26,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/** Newspapers & magazines (the master: admin only), their daily register and report (all staff), and the read-only subscribed list (everyone). */
+/**
+ * Newspapers & magazines (the master: admin only), the daily register and report and the magazine
+ * register (all staff), and the read-only subscribed list (everyone).
+ */
 @RestController
 @RequestMapping("/api/periodicals")
 @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN')")
@@ -75,6 +81,22 @@ public class PeriodicalController {
     public DayRegister saveRegister(@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
                                     @RequestBody List<RegisterEntry> entries) {
         return service.saveRegister(date, entries);
+    }
+
+    /** The magazine register (all staff): each magazine with its subscription year and the issues received. */
+    @GetMapping("/magazines")
+    public List<MagazineCard> magazines() {
+        return service.magazines();
+    }
+
+    @PostMapping("/{id}/receipts")
+    public ReceiptView addReceipt(@PathVariable Long id, @RequestBody ReceiptRequest request) {
+        return service.addReceipt(id, request);
+    }
+
+    @DeleteMapping("/receipts/{receiptId}")
+    public void deleteReceipt(@PathVariable Long receiptId) {
+        service.deleteReceipt(receiptId);
     }
 
     /** month as YYYY-MM. */

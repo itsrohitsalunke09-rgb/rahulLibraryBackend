@@ -2,6 +2,7 @@ package org.ngolibrary.web;
 
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -60,5 +61,21 @@ class PeriodicalControllerTest {
     @WithMockUser(roles = "LIBRARIAN")
     void librarianCannotSeeTheMaster() throws Exception {
         mvc.perform(get("/api/periodicals")).andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "LIBRARIAN")
+    void librarianUsesTheMagazineRegister() throws Exception {
+        when(service.magazines()).thenReturn(List.of());
+        mvc.perform(get("/api/periodicals/magazines")).andExpect(status().isOk());
+        mvc.perform(post("/api/periodicals/2/receipts").contentType("application/json")
+                        .content("{\"receivedOn\":\"2026-10-20\",\"periodFrom\":\"2026-10-01\",\"periodTo\":\"2026-10-31\"}"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @WithMockUser(roles = "STUDENT")
+    void studentCannotSeeTheMagazineRegister() throws Exception {
+        mvc.perform(get("/api/periodicals/magazines")).andExpect(status().isForbidden());
     }
 }

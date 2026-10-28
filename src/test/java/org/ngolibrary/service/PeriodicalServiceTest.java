@@ -20,12 +20,16 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.ngolibrary.domain.MagazineReceipt;
 import org.ngolibrary.domain.Periodical;
 import org.ngolibrary.domain.PeriodicalArrival;
 import org.ngolibrary.domain.PeriodicalFrequency;
+import org.ngolibrary.dto.PeriodicalDtos.MagazineCard;
 import org.ngolibrary.dto.PeriodicalDtos.MonthReport;
 import org.ngolibrary.dto.PeriodicalDtos.PeriodicalRequest;
+import org.ngolibrary.dto.PeriodicalDtos.ReceiptRequest;
 import org.ngolibrary.dto.PeriodicalDtos.RegisterEntry;
+import org.ngolibrary.repo.MagazineReceiptRepository;
 import org.ngolibrary.repo.PeriodicalArrivalRepository;
 import org.ngolibrary.repo.PeriodicalRepository;
 import org.springframework.http.HttpStatus;
@@ -35,6 +39,7 @@ class PeriodicalServiceTest {
 
     private PeriodicalRepository periodicals;
     private PeriodicalArrivalRepository arrivals;
+    private MagazineReceiptRepository receipts;
     private PeriodicalService service;
     private Periodical sakal;
     private Periodical lokrajya;
@@ -43,7 +48,9 @@ class PeriodicalServiceTest {
     void setUp() {
         periodicals = mock(PeriodicalRepository.class);
         arrivals = mock(PeriodicalArrivalRepository.class);
-        service = new PeriodicalService(periodicals, arrivals);
+        receipts = mock(MagazineReceiptRepository.class);
+        when(receipts.save(any(MagazineReceipt.class))).thenAnswer(inv -> inv.getArgument(0));
+        service = new PeriodicalService(periodicals, arrivals, receipts);
         sakal = periodical(1L, "सकाळ", PeriodicalFrequency.DAILY, "6.00", true);
         lokrajya = periodical(2L, "लोकराज्य", PeriodicalFrequency.MONTHLY, "20.00", true);
         when(periodicals.findAllByOrderByActiveDescNameAsc()).thenReturn(List.of(sakal, lokrajya));
@@ -75,15 +82,30 @@ class PeriodicalServiceTest {
     }
 
     @Test
-    void registerListsSubscribedPapersWithTheirUsualPrice() {
+    void registerListsOnlyDailyPapersWithTheirPrice() {
         LocalDate day = LocalDate.of(2026, 10, 25);
         when(arrivals.findByDate(day)).thenReturn(List.of(arrival(sakal, day, "8.00")));
         var rows = service.register(day).rows();
-        assertEquals(2, rows.size());
+        assertEquals(1, rows.size(), "the monthly magazine is in the magazine register instead");
         assertTrue(rows.get(0).arrived());
         assertEquals(new BigDecimal("8.00"), rows.get(0).price(), "the Sunday price recorded that day");
-        assertFalse(rows.get(1).arrived());
-        assertEquals(new BigDecimal("20.00"), rows.get(1).price(), "unticked rows offer the usual price");
+    }
+
+    @Test
+    void unTickedRowsOfferTheUsualPrice() {
+        LocalDate day = LocalDate.of(2026, 10, 26);
+        when(arrivals.findByDate(day)).thenReturn(List.of());
+        var row = service.register(day).rows().get(0);
+        assertFalse(row.arrived());
+        assertEquals(new BigDecimal("6.00"), row.price());
+    }
+
+    @Test
+    void aMagazineCannotBeTickedInTheDailyRegister() {
+        LocalDate day = LocalDate.of(2026, 10, 25);
+        when(arrivals.findByDate(day)).thenReturn(List.of());
+        assertStatus(HttpStatus.BAD_REQUEST, () -> service.saveRegister(day, List.of(new RegisterEntry(2L, true, null))));
+        verify(arrivals, never()).save(any());
     }
 
     @Test
@@ -122,17 +144,16 @@ class PeriodicalServiceTest {
         when(arrivals.findByDateBetween(month.atDay(1), month.atEndOfMonth())).thenReturn(copies);
 
         MonthReport report = service.report(month);
-        assertEquals(29, report.totalIssues());
+        assertEquals(1, report.rows().size(), "magazines are paid yearly, so they are not in the bill check");
+        assertEquals(28, report.totalIssues());
         assertEquals(new BigDecimal("176.00"), report.rows().get(0).amount(), "24 × 6 + 4 Sundays × 8");
-        assertEquals(new BigDecimal("196.00"), report.totalAmount());
+        assertEquals(new BigDecimal("176.00"), report.totalAmount());
         assertEquals(2L, report.rows().get(0).missingDays(), "30 days, 28 copies");
-        assertNull(report.rows().get(1).missingDays(), "monthly magazines have no missing days");
 
         List<BigDecimal> sakalDays = report.rows().get(0).prices();
         assertEquals(30, sakalDays.size(), "one entry per day of September");
         assertEquals(new BigDecimal("8.00"), sakalDays.get(6), "the 7th");
         assertNull(sakalDays.get(29), "no copy on the 30th");
-        assertEquals(new BigDecimal("20.00"), report.rows().get(1).prices().get(4));
     }
 
     @Test
@@ -146,13 +167,71 @@ class PeriodicalServiceTest {
     void namesMustBeUniqueAndPricesSane() {
         when(periodicals.existsByNameIgnoreCase("लोकमत")).thenReturn(true);
         assertStatus(HttpStatus.CONFLICT, () -> service.create(
-                new PeriodicalRequest(" लोकमत ", "मराठी", PeriodicalFrequency.DAILY, new BigDecimal("6"), true)));
+                new PeriodicalRequest(" लोकमत ", "मराठी", PeriodicalFrequency.DAILY, new BigDecimal("6"), true, null, null, null)));
         assertStatus(HttpStatus.BAD_REQUEST, () -> service.create(
-                new PeriodicalRequest("Some paper", null, PeriodicalFrequency.DAILY, new BigDecimal("20000"), true)));
-        Periodical created = service.create(new PeriodicalRequest(" India Today ", " ", PeriodicalFrequency.WEEKLY, null, null));
+                new PeriodicalRequest("Some paper", null, PeriodicalFrequency.DAILY, new BigDecimal("20000"), true, null, null, null)));
+        Periodical created = service.create(new PeriodicalRequest(" India Today ", " ", PeriodicalFrequency.WEEKLY, null, null, null, null, null));
         assertEquals("India Today", created.getName());
         assertNull(created.getLanguage());
         assertEquals(new BigDecimal("0.00"), created.getPrice());
         assertTrue(created.isActive());
+    }
+
+    @Test
+    void aMagazineSubscriptionRunsAYearFromItsStartByDefault() {
+        Periodical created = service.create(new PeriodicalRequest("India Today", null, PeriodicalFrequency.WEEKLY,
+                null, true, new BigDecimal("2500"), LocalDate.of(2026, 4, 1), null));
+        assertEquals(new BigDecimal("2500.00"), created.getSubscriptionAmount());
+        assertEquals(LocalDate.of(2027, 3, 31), created.getSubscriptionEnd());
+        assertStatus(HttpStatus.BAD_REQUEST, () -> service.create(new PeriodicalRequest("Outlook", null,
+                PeriodicalFrequency.WEEKLY, null, true, null, LocalDate.of(2026, 4, 1), LocalDate.of(2026, 3, 1))));
+    }
+
+    @Test
+    void aDailyPaperKeepsNoSubscription() {
+        Periodical created = service.create(new PeriodicalRequest("लोकसत्ता", null, PeriodicalFrequency.DAILY,
+                new BigDecimal("6"), true, new BigDecimal("2500"), LocalDate.of(2026, 4, 1), null));
+        assertNull(created.getSubscriptionAmount());
+        assertNull(created.getSubscriptionStart());
+    }
+
+    @Test
+    void aCombinedIssueIsOneReceiptCoveringSeveralMonths() {
+        var receipt = service.addReceipt(2L, new ReceiptRequest(LocalDate.of(2026, 10, 20),
+                LocalDate.of(2026, 9, 1), LocalDate.of(2026, 10, 31)));
+        assertEquals(LocalDate.of(2026, 9, 1), receipt.periodFrom());
+        assertEquals(LocalDate.of(2026, 10, 31), receipt.periodTo());
+    }
+
+    @Test
+    void receiptsAreCheckedBeforeSaving() {
+        LocalDate today = LocalDate.now();
+        assertStatus(HttpStatus.BAD_REQUEST, () -> service.addReceipt(1L, new ReceiptRequest(today, today, today)));
+        assertStatus(HttpStatus.BAD_REQUEST, () -> service.addReceipt(2L, new ReceiptRequest(today.plusDays(1), today, today)));
+        assertStatus(HttpStatus.BAD_REQUEST, () -> service.addReceipt(2L, new ReceiptRequest(today, today, today.minusDays(1))));
+        assertStatus(HttpStatus.BAD_REQUEST, () -> service.addReceipt(2L, new ReceiptRequest(today, null, today)));
+        verify(receipts, never()).save(any());
+    }
+
+    @Test
+    void theMagazineRegisterGroupsReceiptsPerMagazine() {
+        MagazineReceipt october = new MagazineReceipt();
+        october.setPeriodical(lokrajya);
+        october.setReceivedOn(LocalDate.of(2026, 10, 6));
+        october.setPeriodFrom(LocalDate.of(2026, 10, 1));
+        october.setPeriodTo(LocalDate.of(2026, 10, 31));
+        when(receipts.findAllByOrderByPeriodFromAsc()).thenReturn(List.of(october));
+
+        List<MagazineCard> cards = service.magazines();
+        assertEquals(1, cards.size(), "the daily paper is not a magazine");
+        assertEquals("लोकराज्य", cards.get(0).name());
+        assertEquals(LocalDate.of(2026, 10, 1), cards.get(0).receipts().get(0).periodFrom());
+    }
+
+    @Test
+    void aMagazineWithReceiptsCannotBeDeleted() {
+        when(receipts.existsByPeriodicalId(2L)).thenReturn(true);
+        assertStatus(HttpStatus.CONFLICT, () -> service.delete(2L));
+        verify(periodicals, never()).deleteById(any());
     }
 }
