@@ -101,7 +101,7 @@ public class PeriodicalService {
             PeriodicalArrival entry = entries.get(p.getId());
             if (daily(p) && (p.isActive() || entry != null)) {
                 rows.add(new RegisterRow(p.getId(), p.getName(), p.getLanguage(), p.getFrequency(), p.getPrice(),
-                        entry != null, entry != null ? entry.getPrice() : p.getPrice()));
+                        entry != null, entry != null ? entry.getPrice() : p.getPrice(), p.getContactNumber()));
             }
         }
         return new DayRegister(date, rows);
@@ -187,7 +187,7 @@ public class PeriodicalService {
                 .filter(p -> !daily(p) && (p.isActive() || byMagazine.containsKey(p.getId())))
                 .map(p -> new MagazineCard(p.getId(), p.getName(), p.getLanguage(), p.getFrequency(),
                         p.getSubscriptionAmount(), p.getSubscriptionStart(), p.getSubscriptionEnd(),
-                        byMagazine.getOrDefault(p.getId(), List.of())))
+                        byMagazine.getOrDefault(p.getId(), List.of()), p.getContactNumber()))
                 .toList();
     }
 
@@ -252,7 +252,21 @@ public class PeriodicalService {
         p.setFrequency(r.frequency());
         p.setPrice(price(r.price() == null ? BigDecimal.ZERO : r.price()));
         p.setActive(r.active() == null || r.active());
+        p.setContactNumber(contactNumber(r.contactNumber()));
         applySubscription(p, r);
+    }
+
+    /** A phone number to call: digits with optional +, spaces or dashes, 6 to 15 digits; blank means none. */
+    static String contactNumber(String value) {
+        String number = value == null ? "" : value.trim();
+        if (number.isEmpty()) {
+            return null;
+        }
+        long digits = number.chars().filter(Character::isDigit).count();
+        if (!number.matches("\\+?[0-9 -]+") || digits < 6 || digits > 15) {
+            throw bad("Enter a phone number with 6 to 15 digits, like 98765 43210.");
+        }
+        return number;
     }
 
     /** Daily papers are paid per copy; magazines keep a yearly amount and the year it covers. */

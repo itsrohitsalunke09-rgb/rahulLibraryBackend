@@ -12,10 +12,13 @@ public final class PeriodicalDtos {
     private PeriodicalDtos() {
     }
 
-    /** subscription*: magazines only (paid yearly); a missing end is a year after the start. */
+    /**
+     * subscription*: magazines only (paid yearly); a missing end is a year after the start.
+     * contactNumber: who to phone when a copy doesn't come (optional).
+     */
     public record PeriodicalRequest(String name, String language, PeriodicalFrequency frequency, BigDecimal price,
                                     Boolean active, BigDecimal subscriptionAmount, LocalDate subscriptionStart,
-                                    LocalDate subscriptionEnd) {
+                                    LocalDate subscriptionEnd, String contactNumber) {
     }
 
     /**
@@ -31,7 +34,7 @@ public final class PeriodicalDtos {
     /** One weekly/fortnightly/monthly magazine with its subscription year and every issue received. */
     public record MagazineCard(Long periodicalId, String name, String language, PeriodicalFrequency frequency,
                                BigDecimal subscriptionAmount, LocalDate subscriptionStart, LocalDate subscriptionEnd,
-                               List<ReceiptView> receipts) {
+                               List<ReceiptView> receipts, String contactNumber) {
     }
 
     /** What the catalog shows anyone signed in: no prices. */
@@ -40,7 +43,7 @@ public final class PeriodicalDtos {
 
     /** One line of a day's register: whether the copy came and what it cost. */
     public record RegisterRow(Long periodicalId, String name, String language, PeriodicalFrequency frequency,
-                              BigDecimal defaultPrice, boolean arrived, BigDecimal price) {
+                              BigDecimal defaultPrice, boolean arrived, BigDecimal price, String contactNumber) {
     }
 
     public record RegisterEntry(Long periodicalId, boolean arrived, BigDecimal price) {

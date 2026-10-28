@@ -167,10 +167,10 @@ class PeriodicalServiceTest {
     void namesMustBeUniqueAndPricesSane() {
         when(periodicals.existsByNameIgnoreCase("लोकमत")).thenReturn(true);
         assertStatus(HttpStatus.CONFLICT, () -> service.create(
-                new PeriodicalRequest(" लोकमत ", "मराठी", PeriodicalFrequency.DAILY, new BigDecimal("6"), true, null, null, null)));
+                new PeriodicalRequest(" लोकमत ", "मराठी", PeriodicalFrequency.DAILY, new BigDecimal("6"), true, null, null, null, null)));
         assertStatus(HttpStatus.BAD_REQUEST, () -> service.create(
-                new PeriodicalRequest("Some paper", null, PeriodicalFrequency.DAILY, new BigDecimal("20000"), true, null, null, null)));
-        Periodical created = service.create(new PeriodicalRequest(" India Today ", " ", PeriodicalFrequency.WEEKLY, null, null, null, null, null));
+                new PeriodicalRequest("Some paper", null, PeriodicalFrequency.DAILY, new BigDecimal("20000"), true, null, null, null, null)));
+        Periodical created = service.create(new PeriodicalRequest(" India Today ", " ", PeriodicalFrequency.WEEKLY, null, null, null, null, null, null));
         assertEquals("India Today", created.getName());
         assertNull(created.getLanguage());
         assertEquals(new BigDecimal("0.00"), created.getPrice());
@@ -180,17 +180,28 @@ class PeriodicalServiceTest {
     @Test
     void aMagazineSubscriptionRunsAYearFromItsStartByDefault() {
         Periodical created = service.create(new PeriodicalRequest("India Today", null, PeriodicalFrequency.WEEKLY,
-                null, true, new BigDecimal("2500"), LocalDate.of(2026, 4, 1), null));
+                null, true, new BigDecimal("2500"), LocalDate.of(2026, 4, 1), null, null));
         assertEquals(new BigDecimal("2500.00"), created.getSubscriptionAmount());
         assertEquals(LocalDate.of(2027, 3, 31), created.getSubscriptionEnd());
         assertStatus(HttpStatus.BAD_REQUEST, () -> service.create(new PeriodicalRequest("Outlook", null,
-                PeriodicalFrequency.WEEKLY, null, true, null, LocalDate.of(2026, 4, 1), LocalDate.of(2026, 3, 1))));
+                PeriodicalFrequency.WEEKLY, null, true, null, LocalDate.of(2026, 4, 1), LocalDate.of(2026, 3, 1), null)));
+    }
+
+    @Test
+    void aContactNumberIsOptionalButMustLookLikeAPhoneNumber() {
+        Periodical created = service.create(new PeriodicalRequest("सकाळ", null, PeriodicalFrequency.DAILY,
+                new BigDecimal("6"), true, null, null, null, " +91 98765-43210 "));
+        assertEquals("+91 98765-43210", created.getContactNumber());
+        assertNull(service.create(new PeriodicalRequest("लोकमत", null, PeriodicalFrequency.DAILY,
+                new BigDecimal("6"), true, null, null, null, " ")).getContactNumber());
+        assertStatus(HttpStatus.BAD_REQUEST, () -> service.create(new PeriodicalRequest("पुढारी", null,
+                PeriodicalFrequency.DAILY, new BigDecimal("6"), true, null, null, null, "call raju")));
     }
 
     @Test
     void aDailyPaperKeepsNoSubscription() {
         Periodical created = service.create(new PeriodicalRequest("लोकसत्ता", null, PeriodicalFrequency.DAILY,
-                new BigDecimal("6"), true, new BigDecimal("2500"), LocalDate.of(2026, 4, 1), null));
+                new BigDecimal("6"), true, new BigDecimal("2500"), LocalDate.of(2026, 4, 1), null, null));
         assertNull(created.getSubscriptionAmount());
         assertNull(created.getSubscriptionStart());
     }

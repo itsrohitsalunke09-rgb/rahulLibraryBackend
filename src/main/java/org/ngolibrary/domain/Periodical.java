@@ -49,6 +49,10 @@ public class Periodical {
     @Column(name = "subscription_end")
     private LocalDate subscriptionEnd;
 
+    /** Vendor or agent to phone when a copy doesn't reach the library. */
+    @Column(name = "contact_number", length = 20)
+    private String contactNumber;
+
     public Long getId() {
         return id;
     }
@@ -119,5 +123,13 @@ public class Periodical {
 
     public void setSubscriptionEnd(LocalDate subscriptionEnd) {
         this.subscriptionEnd = subscriptionEnd;
+    }
+
+    public String getContactNumber() {
+        return contactNumber;
+    }
+
+    public void setContactNumber(String contactNumber) {
+        this.contactNumber = contactNumber;
     }
 }
