@@ -11,4 +11,6 @@ public interface MagazineReceiptRepository extends JpaRepository<MagazineReceipt
     List<MagazineReceipt> findAllByOrderByPeriodFromAsc();
 
     boolean existsByPeriodicalId(Long periodicalId);
+
+    boolean existsByPeriodicalIdAndIssueNo(Long periodicalId, Integer issueNo);
 }

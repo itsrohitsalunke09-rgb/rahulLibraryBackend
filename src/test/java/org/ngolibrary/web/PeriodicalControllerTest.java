@@ -69,7 +69,7 @@ class PeriodicalControllerTest {
         when(service.magazines()).thenReturn(List.of());
         mvc.perform(get("/api/periodicals/magazines")).andExpect(status().isOk());
         mvc.perform(post("/api/periodicals/2/receipts").contentType("application/json")
-                        .content("{\"receivedOn\":\"2026-10-20\",\"periodFrom\":\"2026-10-01\",\"periodTo\":\"2026-10-31\"}"))
+                        .content("{\"issueNo\":12,\"receivedOn\":\"2026-10-20\",\"periodFrom\":\"2026-10-20\",\"periodTo\":\"2026-10-20\"}"))
                 .andExpect(status().isOk());
     }
 

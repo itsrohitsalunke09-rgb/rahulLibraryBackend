@@ -196,20 +196,30 @@ class PeriodicalServiceTest {
     }
 
     @Test
-    void aCombinedIssueIsOneReceiptCoveringSeveralMonths() {
-        var receipt = service.addReceipt(2L, new ReceiptRequest(LocalDate.of(2026, 10, 20),
-                LocalDate.of(2026, 9, 1), LocalDate.of(2026, 10, 31)));
-        assertEquals(LocalDate.of(2026, 9, 1), receipt.periodFrom());
-        assertEquals(LocalDate.of(2026, 10, 31), receipt.periodTo());
+    void anIssueIsRecordedWithItsNumber() {
+        LocalDate published = LocalDate.of(2026, 10, 5);
+        var receipt = service.addReceipt(2L, new ReceiptRequest(12, published, published, published));
+        assertEquals(12, receipt.issueNo());
+        assertEquals(published, receipt.periodFrom());
+    }
+
+    @Test
+    void theSameIssueNumberCannotBeMarkedTwice() {
+        when(receipts.existsByPeriodicalIdAndIssueNo(2L, 12)).thenReturn(true);
+        LocalDate day = LocalDate.of(2026, 10, 5);
+        assertStatus(HttpStatus.CONFLICT, () -> service.addReceipt(2L, new ReceiptRequest(12, day, day, day)));
+        verify(receipts, never()).save(any());
     }
 
     @Test
     void receiptsAreCheckedBeforeSaving() {
         LocalDate today = LocalDate.now();
-        assertStatus(HttpStatus.BAD_REQUEST, () -> service.addReceipt(1L, new ReceiptRequest(today, today, today)));
-        assertStatus(HttpStatus.BAD_REQUEST, () -> service.addReceipt(2L, new ReceiptRequest(today.plusDays(1), today, today)));
-        assertStatus(HttpStatus.BAD_REQUEST, () -> service.addReceipt(2L, new ReceiptRequest(today, today, today.minusDays(1))));
-        assertStatus(HttpStatus.BAD_REQUEST, () -> service.addReceipt(2L, new ReceiptRequest(today, null, today)));
+        assertStatus(HttpStatus.BAD_REQUEST, () -> service.addReceipt(1L, new ReceiptRequest(1, today, today, today)));
+        assertStatus(HttpStatus.BAD_REQUEST, () -> service.addReceipt(2L, new ReceiptRequest(1, today.plusDays(1), today, today)));
+        assertStatus(HttpStatus.BAD_REQUEST, () -> service.addReceipt(2L, new ReceiptRequest(1, today, today, today.minusDays(1))));
+        assertStatus(HttpStatus.BAD_REQUEST, () -> service.addReceipt(2L, new ReceiptRequest(1, today, null, today)));
+        assertStatus(HttpStatus.BAD_REQUEST, () -> service.addReceipt(2L, new ReceiptRequest(null, today, today, today)));
+        assertStatus(HttpStatus.BAD_REQUEST, () -> service.addReceipt(2L, new ReceiptRequest(0, today, today, today)));
         verify(receipts, never()).save(any());
     }
 

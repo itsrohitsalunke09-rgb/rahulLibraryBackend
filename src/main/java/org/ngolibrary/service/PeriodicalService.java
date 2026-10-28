@@ -191,7 +191,7 @@ public class PeriodicalService {
                 .toList();
     }
 
-    /** Records one issue of a magazine and the period it covers (one or more months, or a week). */
+    /** Records one issue of a magazine: its number (अंक), and its published date or from–to week. */
     @Transactional
     public ReceiptView addReceipt(Long periodicalId, ReceiptRequest r) {
         Periodical p = find(periodicalId);
@@ -199,16 +199,24 @@ public class PeriodicalService {
             throw bad("\"" + p.getName() + "\" is a daily paper: tick it in the daily register.");
         }
         if (r == null || r.receivedOn() == null || r.periodFrom() == null || r.periodTo() == null) {
-            throw bad("Enter the date it came and the period it covers.");
+            throw bad("Enter the issue's dates.");
+        }
+        if (r.issueNo() == null || r.issueNo() < 1 || r.issueNo() > 99999) {
+            throw bad("Enter the issue number (अंक), e.g. 12.");
+        }
+        if (receipts.existsByPeriodicalIdAndIssueNo(periodicalId, r.issueNo())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "अंक " + r.issueNo() + " of \"" + p.getName() + "\" is already marked received.");
         }
         if (r.receivedOn().isAfter(LocalDate.now())) {
-            throw bad("The date it came can't be in the future.");
+            throw bad("The date can't be in the future.");
         }
         if (r.periodTo().isBefore(r.periodFrom())) {
             throw bad("The period must end on or after its start.");
         }
         MagazineReceipt receipt = new MagazineReceipt();
         receipt.setPeriodical(p);
+        receipt.setIssueNo(r.issueNo());
         receipt.setReceivedOn(r.receivedOn());
         receipt.setPeriodFrom(r.periodFrom());
         receipt.setPeriodTo(r.periodTo());
@@ -224,7 +232,7 @@ public class PeriodicalService {
     }
 
     private static ReceiptView view(MagazineReceipt r) {
-        return new ReceiptView(r.getId(), r.getReceivedOn(), r.getPeriodFrom(), r.getPeriodTo());
+        return new ReceiptView(r.getId(), r.getIssueNo(), r.getReceivedOn(), r.getPeriodFrom(), r.getPeriodTo());
     }
 
     private void apply(Periodical p, PeriodicalRequest r) {

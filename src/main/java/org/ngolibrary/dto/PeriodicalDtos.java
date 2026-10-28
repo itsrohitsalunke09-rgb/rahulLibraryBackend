@@ -18,11 +18,14 @@ public final class PeriodicalDtos {
                                     LocalDate subscriptionEnd) {
     }
 
-    /** A magazine issue received, covering periodFrom..periodTo (a week, a month, or several months combined). */
-    public record ReceiptRequest(LocalDate receivedOn, LocalDate periodFrom, LocalDate periodTo) {
+    /**
+     * A magazine issue: its number (अंक) and dates. Monthly: the published date (from = to = that day).
+     * Weekly/fortnightly: the from–to dates it covers. receivedOn is the published date or the week's start.
+     */
+    public record ReceiptRequest(Integer issueNo, LocalDate receivedOn, LocalDate periodFrom, LocalDate periodTo) {
     }
 
-    public record ReceiptView(Long id, LocalDate receivedOn, LocalDate periodFrom, LocalDate periodTo) {
+    public record ReceiptView(Long id, Integer issueNo, LocalDate receivedOn, LocalDate periodFrom, LocalDate periodTo) {
     }
 
     /** One weekly/fortnightly/monthly magazine with its subscription year and every issue received. */
