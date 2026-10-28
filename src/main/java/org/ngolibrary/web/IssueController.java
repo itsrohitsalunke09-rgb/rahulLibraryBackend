@@ -1,5 +1,6 @@
 package org.ngolibrary.web;
 
+import java.time.YearMonth;
 import java.util.List;
 import java.util.Map;
 
@@ -56,6 +57,13 @@ public class IssueController {
     @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN')")
     public List<Integer> years() {
         return issueService.issueYears();
+    }
+
+    /** Book transactions report: issues given or returned in a month (YYYY-MM). */
+    @GetMapping("/issues/month")
+    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN')")
+    public List<IssueResponse> month(@RequestParam YearMonth month) {
+        return issueService.movedInMonth(month);
     }
 
     @GetMapping("/issues/count")

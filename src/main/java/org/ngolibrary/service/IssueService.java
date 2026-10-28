@@ -1,6 +1,7 @@
 package org.ngolibrary.service;
 
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -75,6 +76,12 @@ public class IssueService {
             page = issues.findByStatusIssuedBetween(status, from, to, unsorted);
         }
         return page.map(IssueResponse::from);
+    }
+
+    /** The book transactions report: every issue given or returned in the month. */
+    @Transactional(readOnly = true)
+    public List<IssueResponse> movedInMonth(YearMonth month) {
+        return issues.findMovedBetween(month.atDay(1), month.atEndOfMonth()).stream().map(IssueResponse::from).toList();
     }
 
     /** Years that have at least one issue in their range, latest first (current year if there are none). */

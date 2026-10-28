@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -19,6 +20,7 @@ import org.ngolibrary.domain.IssueStatus;
 import org.ngolibrary.domain.Role;
 import org.ngolibrary.domain.UserAccount;
 import org.ngolibrary.dto.IssueRequest;
+import org.ngolibrary.dto.IssueResponse;
 import org.ngolibrary.repo.BookIssueRepository;
 import org.ngolibrary.repo.BookRepository;
 import org.ngolibrary.repo.UserAccountRepository;
@@ -120,5 +122,21 @@ class IssueServiceTest {
         verify(books).returnCopy(1L);
 
         assertBadRequest("Book already returned", () -> service.returnBook(9L));
+    }
+
+    @Test
+    void theMonthReportAsksForIssuesGivenOrReturnedInThatMonth() {
+        BookIssue issue = new BookIssue();
+        issue.setBook(book);
+        issue.setStudent(student);
+        issue.setIssuedBy(librarian);
+        issue.setIssueDate(LocalDate.of(2026, 10, 3));
+        issue.setDueDate(LocalDate.of(2026, 10, 17));
+        issue.setStatus(IssueStatus.RETURNED);
+        issue.setReturnDate(LocalDate.of(2026, 10, 9));
+        when(issues.findMovedBetween(LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 31))).thenReturn(List.of(issue));
+        List<IssueResponse> moved = service.movedInMonth(java.time.YearMonth.of(2026, 10));
+        assertEquals(1, moved.size());
+        assertEquals("Yayati", moved.get(0).getBookTitle());
     }
 }

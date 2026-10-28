@@ -35,6 +35,12 @@ public interface BookIssueRepository extends JpaRepository<BookIssue, Long> {
 
     List<BookIssue> findByStatus(IssueStatus status);
 
+    /** Issues given or returned between the two dates (inclusive), oldest issue first. */
+    @EntityGraph(attributePaths = {"book", "student", "issuedBy"})
+    @Query("SELECT bi FROM BookIssue bi WHERE bi.issueDate BETWEEN :from AND :to OR bi.returnDate BETWEEN :from AND :to"
+            + " ORDER BY bi.issueDate, bi.id")
+    List<BookIssue> findMovedBetween(@Param("from") LocalDate from, @Param("to") LocalDate to);
+
     @EntityGraph(attributePaths = {"book", "student"})
     List<BookIssue> findByStatusAndDueDateBefore(IssueStatus status, LocalDate date);
 
