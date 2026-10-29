@@ -78,11 +78,23 @@ public class IssueService {
         return page.map(IssueResponse::from);
     }
 
-    /** A student's reading profile: the books they were given in the year, newest first. */
+    /** A student's books, newest first: given in the year, or all years when year is null. */
     @Transactional(readOnly = true)
-    public List<IssueResponse> studentYear(Long studentId, int year) {
-        return issues.findByStudentIdAndIssueDateBetweenOrderByIssueDateDescIdDesc(studentId, LocalDate.of(year, 1, 1),
-                LocalDate.of(year, 12, 31)).stream().map(IssueResponse::from).toList();
+    public List<IssueResponse> studentYear(Long studentId, Integer year) {
+        List<BookIssue> list = year == null
+                ? issues.findByStudentIdOrderByIssueDateDescIdDesc(studentId)
+                : issues.findByStudentIdAndIssueDateBetweenOrderByIssueDateDescIdDesc(studentId, LocalDate.of(year, 1, 1),
+                        LocalDate.of(year, 12, 31));
+        return list.stream().map(IssueResponse::from).toList();
+    }
+
+    /** The books report's student list: every student's totals across all years. */
+    @Transactional(readOnly = true)
+    public List<org.ngolibrary.dto.StudentSummary> studentSummaries() {
+        return issues.summarizeStudents().stream()
+                .map(r -> new org.ngolibrary.dto.StudentSummary(r.getStudentId(), r.getStudentName(), r.getTotal(),
+                        r.getReturned(), r.getIssued(), r.getOverdue()))
+                .toList();
     }
 
     /** The books report's circles: how many books each student was given in the year. */

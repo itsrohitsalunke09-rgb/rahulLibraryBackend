@@ -59,11 +59,18 @@ public class IssueController {
         return issueService.issueYears();
     }
 
-    /** Reading Galaxy profile: one student's books given in the year. */
+    /** One student's books: given in the year, or all years without one. */
     @GetMapping("/issues/student/{studentId}")
     @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN')")
-    public List<IssueResponse> studentYear(@PathVariable Long studentId, @RequestParam int year) {
+    public List<IssueResponse> studentYear(@PathVariable Long studentId, @RequestParam(required = false) Integer year) {
         return issueService.studentYear(studentId, year);
+    }
+
+    /** Books report student list: each student's totals by status across all years. */
+    @GetMapping("/issues/students")
+    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN')")
+    public List<org.ngolibrary.dto.StudentSummary> students() {
+        return issueService.studentSummaries();
     }
 
     /** Books report circles: books given to each student in the year. */

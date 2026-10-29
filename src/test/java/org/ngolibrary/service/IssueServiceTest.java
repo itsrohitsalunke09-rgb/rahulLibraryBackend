@@ -168,4 +168,32 @@ class IssueServiceTest {
                 .thenReturn(List.of(issue));
         assertEquals("Yayati", service.studentYear(2L, 2026).get(0).getBookTitle());
     }
+
+    @Test
+    void withoutAYearAStudentsBooksCoverAllYears() {
+        BookIssue issue = new BookIssue();
+        issue.setBook(book);
+        issue.setStudent(student);
+        issue.setIssuedBy(librarian);
+        issue.setIssueDate(LocalDate.of(2025, 3, 3));
+        issue.setDueDate(LocalDate.of(2025, 3, 17));
+        issue.setStatus(IssueStatus.RETURNED);
+        when(issues.findByStudentIdOrderByIssueDateDescIdDesc(2L)).thenReturn(List.of(issue));
+        assertEquals(1, service.studentYear(2L, null).size());
+    }
+
+    @Test
+    void theStudentSummaryCarriesTheCountsByStatus() {
+        when(issues.summarizeStudents()).thenReturn(List.of(new BookIssueRepository.StudentSummaryRow() {
+            public Long getStudentId() { return 7L; }
+            public String getStudentName() { return "Aarav"; }
+            public Long getTotal() { return 9L; }
+            public Long getReturned() { return 2L; }
+            public Long getIssued() { return 6L; }
+            public Long getOverdue() { return 1L; }
+        }));
+        org.ngolibrary.dto.StudentSummary s = service.studentSummaries().get(0);
+        assertEquals(9L, s.total());
+        assertEquals(1L, s.overdue());
+    }
 }

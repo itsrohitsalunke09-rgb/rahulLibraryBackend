@@ -35,6 +35,34 @@ public interface BookIssueRepository extends JpaRepository<BookIssue, Long> {
 
     List<BookIssue> findByStatus(IssueStatus status);
 
+    /** One student's books across all years, newest first. */
+    @EntityGraph(attributePaths = {"book", "student", "issuedBy"})
+    List<BookIssue> findByStudentIdOrderByIssueDateDescIdDesc(Long studentId);
+
+    /** A student's totals across all years. */
+    interface StudentSummaryRow {
+        Long getStudentId();
+
+        String getStudentName();
+
+        Long getTotal();
+
+        Long getReturned();
+
+        Long getIssued();
+
+        Long getOverdue();
+    }
+
+    /** Every active student with books, all years: totals by status (overdue = not returned and past due), the most first. */
+    @Query(value = "SELECT u.id AS \"studentId\", u.full_name AS \"studentName\", count(*) AS \"total\","
+            + " count(*) FILTER (WHERE bi.status = 'RETURNED') AS \"returned\","
+            + " count(*) FILTER (WHERE bi.status <> 'RETURNED' AND bi.due_date >= current_date) AS \"issued\","
+            + " count(*) FILTER (WHERE bi.status <> 'RETURNED' AND bi.due_date < current_date) AS \"overdue\""
+            + " FROM book_issues bi JOIN users u ON u.id = bi.student_id WHERE u.active"
+            + " GROUP BY u.id, u.full_name ORDER BY count(*) DESC, u.full_name", nativeQuery = true)
+    List<StudentSummaryRow> summarizeStudents();
+
     /** One student's books given between two dates, newest first (the reading profile). */
     @EntityGraph(attributePaths = {"book", "student", "issuedBy"})
     List<BookIssue> findByStudentIdAndIssueDateBetweenOrderByIssueDateDescIdDesc(Long studentId, LocalDate from, LocalDate to);
@@ -48,9 +76,9 @@ public interface BookIssueRepository extends JpaRepository<BookIssue, Long> {
         Long getBooks();
     }
 
-    /** Books given to each student between the two dates (inclusive), the most first. Plain SQL, checked against the live schema. */
+    /** Books given to each active student between the two dates (inclusive), the most first. Plain SQL, checked against the live schema. */
     @Query(value = "SELECT u.id AS \"studentId\", u.full_name AS \"studentName\", count(*) AS \"books\" FROM book_issues bi"
-            + " JOIN users u ON u.id = bi.student_id WHERE bi.issue_date BETWEEN :from AND :to"
+            + " JOIN users u ON u.id = bi.student_id WHERE u.active AND bi.issue_date BETWEEN :from AND :to"
             + " GROUP BY u.id, u.full_name ORDER BY count(*) DESC, u.full_name", nativeQuery = true)
     List<ReaderCountRow> countReadersBetween(@Param("from") LocalDate from, @Param("to") LocalDate to);
 
