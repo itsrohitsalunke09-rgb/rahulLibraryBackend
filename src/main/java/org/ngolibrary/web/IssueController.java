@@ -7,6 +7,7 @@ import java.util.Map;
 import javax.validation.Valid;
 
 import org.ngolibrary.domain.IssueStatus;
+import org.ngolibrary.domain.Role;
 import org.ngolibrary.domain.UserAccount;
 import org.ngolibrary.dto.ApiMessage;
 import org.ngolibrary.dto.DashboardResponse;
@@ -17,6 +18,7 @@ import org.ngolibrary.service.IssueService;
 import org.ngolibrary.service.OverdueNotificationService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -59,10 +61,15 @@ public class IssueController {
         return issueService.issueYears();
     }
 
-    /** One student's books: given in the year, or all years without one. */
+    /** One student's books: given in the year, or all years without one. A student sees only their own. */
     @GetMapping("/issues/student/{studentId}")
     @PreAuthorize("(hasAnyRole('ADMIN','LIBRARIAN') and @perm.can('READ')) or @perm.can('GALAXY_VIEW')")
-    public List<IssueResponse> studentYear(@PathVariable Long studentId, @RequestParam(required = false) Integer year) {
+    public List<IssueResponse> studentYear(@PathVariable Long studentId, @RequestParam(required = false) Integer year,
+            Authentication authentication) {
+        UserAccount viewer = authService.current(authentication);
+        if (viewer.getRole() == Role.STUDENT && !viewer.getId().equals(studentId)) {
+            throw new AccessDeniedException("Students can see only their own books.");
+        }
         return issueService.studentYear(studentId, year);
     }
 
