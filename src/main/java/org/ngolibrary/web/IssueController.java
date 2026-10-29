@@ -126,7 +126,7 @@ public class IssueController {
     }
 
     @PostMapping("/issues")
-    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN') and @perm.can('WRITE')")
+    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN') and @perm.can('ISSUE_BOOK')")
     public IssueResponse issue(@Valid @RequestBody IssueRequest request, Authentication authentication) {
         UserAccount librarian = authService.current(authentication);
         return issueService.issue(request, librarian);

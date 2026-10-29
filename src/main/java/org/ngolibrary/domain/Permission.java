@@ -6,5 +6,9 @@ public enum Permission {
     WRITE,
     UPDATE,
     DELETE,
-    GALAXY_VIEW
+    GALAXY_VIEW,
+    /** Phone a newspaper or magazine vendor from the registers. */
+    CALL,
+    /** Give a book to a student. */
+    ISSUE_BOOK
 }

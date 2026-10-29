@@ -1,7 +1,9 @@
 package org.ngolibrary.service;
 
+import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -25,9 +27,10 @@ public class PermissionService {
     /** The roles whose ticks can be changed; admin's are fixed. */
     static final Role[] EDITABLE = {Role.LIBRARIAN, Role.STUDENT};
 
-    /** Librarian: everything but delete; student: read only. */
+    /** Librarian: everything but delete and calling vendors; student: read only. */
     public static final Map<Role, Set<Permission>> DEFAULTS = Map.of(
-            Role.LIBRARIAN, EnumSet.of(Permission.READ, Permission.WRITE, Permission.UPDATE, Permission.GALAXY_VIEW),
+            Role.LIBRARIAN, EnumSet.of(Permission.READ, Permission.WRITE, Permission.UPDATE, Permission.GALAXY_VIEW,
+                    Permission.ISSUE_BOOK),
             Role.STUDENT, EnumSet.of(Permission.READ));
 
     private final RolePermissionRepository repository;
@@ -38,20 +41,28 @@ public class PermissionService {
     }
 
     /**
-     * On start-up: save the defaults the first time, then load what's saved. Admin's rows are saved too, so the
-     * table is never empty again (an admin unticking every box doesn't bring the defaults back on restart).
+     * On start-up: save each permission's defaults the first time it is seen (the first start, or a permission
+     * added since), then load what's saved. Admin's row marks a permission as seen, so an admin unticking
+     * every box never brings the defaults back on restart.
      */
     @EventListener(ApplicationReadyEvent.class)
     @Transactional
     public void load() {
-        if (repository.count() == 0) {
-            DEFAULTS.forEach((role, permissions) -> permissions.forEach(p -> repository.save(new RolePermission(role, p))));
-            for (Permission p : Permission.values()) {
+        List<RolePermission> rows = new ArrayList<>(repository.findAll());
+        Set<Permission> seen = EnumSet.noneOf(Permission.class);
+        rows.stream().filter(rp -> rp.getRole() == Role.ADMIN).forEach(rp -> seen.add(rp.getPermission()));
+        for (Permission p : Permission.values()) {
+            if (!seen.contains(p)) {
+                DEFAULTS.forEach((role, permissions) -> {
+                    if (permissions.contains(p)) {
+                        rows.add(repository.save(new RolePermission(role, p)));
+                    }
+                });
                 repository.save(new RolePermission(Role.ADMIN, p));
             }
         }
         Map<Role, Set<Permission>> loaded = copy(Map.of());
-        repository.findAll().forEach(rp -> {
+        rows.forEach(rp -> {
             if (rp.getRole() != Role.ADMIN) {
                 loaded.get(rp.getRole()).add(rp.getPermission());
             }
