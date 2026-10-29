@@ -49,9 +49,8 @@ class IssueControllerTest {
     private AppUserDetailsService userDetailsService;
 
     @BeforeEach
-    void studentsMayViewTheGalaxy() {
+    void signedInAsAStudent() {
         TestPermissions.defaults(permissionService);
-        when(permissionService.has(Role.STUDENT, Permission.GALAXY_VIEW)).thenReturn(true);
         UserAccount me = new UserAccount();
         me.setId(7L);
         me.setRole(Role.STUDENT);

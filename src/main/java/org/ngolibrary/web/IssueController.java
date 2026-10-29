@@ -63,7 +63,7 @@ public class IssueController {
 
     /** One student's books: given in the year, or all years without one. A student sees only their own. */
     @GetMapping("/issues/student/{studentId}")
-    @PreAuthorize("(hasAnyRole('ADMIN','LIBRARIAN') and @perm.can('READ')) or @perm.can('GALAXY_VIEW')")
+    @PreAuthorize("@perm.can('READ')")
     public List<IssueResponse> studentYear(@PathVariable Long studentId, @RequestParam(required = false) Integer year,
             Authentication authentication) {
         UserAccount viewer = authService.current(authentication);
@@ -80,9 +80,9 @@ public class IssueController {
         return issueService.studentSummaries();
     }
 
-    /** Books report circles: books given to each student in the year. */
+    /** The Reading Galaxy: books given to each student in the year (anyone with Read; only staff open others' books). */
     @GetMapping("/issues/readers")
-    @PreAuthorize("@perm.can('GALAXY_VIEW')")
+    @PreAuthorize("@perm.can('READ')")
     public List<org.ngolibrary.dto.ReaderCount> readers(@RequestParam int year) {
         return issueService.readersInYear(year);
     }

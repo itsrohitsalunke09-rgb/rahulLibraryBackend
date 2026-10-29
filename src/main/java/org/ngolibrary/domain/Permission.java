@@ -6,7 +6,6 @@ public enum Permission {
     WRITE,
     UPDATE,
     DELETE,
-    GALAXY_VIEW,
     /** Phone a newspaper or magazine vendor from the registers. */
     CALL,
     /** Issue and return books, and mark newspapers and magazines received in the registers. */

@@ -45,21 +45,20 @@ class PermissionServiceTest {
     @Test
     void savingChangesTheTicksButNeverAdmins() {
         Map<Role, Set<Permission>> saved = service.update(Map.of(
-                Role.STUDENT, Set.of(Permission.READ, Permission.GALAXY_VIEW),
+                Role.STUDENT, Set.of(Permission.READ, Permission.CALL),
                 Role.ADMIN, Set.of()));
-        assertTrue(service.has(Role.STUDENT, Permission.GALAXY_VIEW));
+        assertTrue(service.has(Role.STUDENT, Permission.CALL));
         assertFalse(service.has(Role.LIBRARIAN, Permission.READ));
         assertEquals(EnumSet.allOf(Permission.class), saved.get(Role.ADMIN));
     }
 
     @Test
     void aNewPermissionGetsItsDefaultsOnceSoLibrariansCanMarkRegisters() {
-        // Saved before Call and Register existed: admin rows for the first five only.
+        // Saved before Call and Register existed: admin rows for the first four only.
         when(repository.findAll()).thenReturn(List.of(
                 new RolePermission(Role.LIBRARIAN, Permission.READ),
                 new RolePermission(Role.ADMIN, Permission.READ), new RolePermission(Role.ADMIN, Permission.WRITE),
-                new RolePermission(Role.ADMIN, Permission.UPDATE), new RolePermission(Role.ADMIN, Permission.DELETE),
-                new RolePermission(Role.ADMIN, Permission.GALAXY_VIEW)));
+                new RolePermission(Role.ADMIN, Permission.UPDATE), new RolePermission(Role.ADMIN, Permission.DELETE)));
         when(repository.save(org.mockito.ArgumentMatchers.any())).thenAnswer(call -> call.getArgument(0));
         service.load();
         assertTrue(service.has(Role.LIBRARIAN, Permission.REGISTER));

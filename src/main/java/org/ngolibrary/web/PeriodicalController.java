@@ -99,7 +99,7 @@ public class PeriodicalController {
     }
 
     @DeleteMapping("/receipts/{receiptId}")
-    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN') and @perm.can('DELETE')")
+    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN') and @perm.can('REGISTER')")
     public void deleteReceipt(@PathVariable Long receiptId) {
         service.deleteReceipt(receiptId);
     }

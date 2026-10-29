@@ -29,7 +29,7 @@ public class PermissionService {
 
     /** Librarian: everything but delete and calling vendors; student: read only. */
     public static final Map<Role, Set<Permission>> DEFAULTS = Map.of(
-            Role.LIBRARIAN, EnumSet.of(Permission.READ, Permission.WRITE, Permission.UPDATE, Permission.GALAXY_VIEW,
+            Role.LIBRARIAN, EnumSet.of(Permission.READ, Permission.WRITE, Permission.UPDATE,
                     Permission.REGISTER),
             Role.STUDENT, EnumSet.of(Permission.READ));
 
@@ -49,6 +49,7 @@ public class PermissionService {
     @Transactional
     public void load() {
         repository.renameIssueBookToRegister();
+        repository.dropGalaxyView();
         List<RolePermission> rows = new ArrayList<>(repository.findAll());
         Set<Permission> seen = EnumSet.noneOf(Permission.class);
         rows.stream().filter(rp -> rp.getRole() == Role.ADMIN).forEach(rp -> seen.add(rp.getPermission()));

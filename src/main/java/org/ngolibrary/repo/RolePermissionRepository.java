@@ -16,4 +16,9 @@ public interface RolePermissionRepository extends JpaRepository<RolePermission, 
     @Modifying
     @Query(value = "UPDATE role_permissions SET permission = 'REGISTER' WHERE permission = 'ISSUE_BOOK'", nativeQuery = true)
     int renameIssueBookToRegister();
+
+    /** Galaxy view was dropped: the Galaxy now needs only Read (run on start, before rows are read as the enum). */
+    @Modifying
+    @Query(value = "DELETE FROM role_permissions WHERE permission = 'GALAXY_VIEW'", nativeQuery = true)
+    int dropGalaxyView();
 }
