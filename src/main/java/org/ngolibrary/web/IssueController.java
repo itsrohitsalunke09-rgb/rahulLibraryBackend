@@ -133,7 +133,7 @@ public class IssueController {
     }
 
     @PostMapping("/issues/{id}/return")
-    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN') and @perm.can('UPDATE')")
+    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN') and @perm.can('REGISTER')")
     public IssueResponse returnBook(@PathVariable Long id) {
         return issueService.returnBook(id);
     }

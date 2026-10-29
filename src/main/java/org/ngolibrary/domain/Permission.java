@@ -9,6 +9,6 @@ public enum Permission {
     GALAXY_VIEW,
     /** Phone a newspaper or magazine vendor from the registers. */
     CALL,
-    /** Issue books to students, and mark newspapers and magazines received in the registers. */
+    /** Issue and return books, and mark newspapers and magazines received in the registers. */
     REGISTER
 }
