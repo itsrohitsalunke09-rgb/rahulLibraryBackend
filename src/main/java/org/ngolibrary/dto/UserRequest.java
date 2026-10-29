@@ -1,7 +1,10 @@
 package org.ngolibrary.dto;
 
+import java.time.LocalDate;
+
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
+import javax.validation.constraints.PastOrPresent;
 
 import org.ngolibrary.domain.Role;
 
@@ -13,6 +16,8 @@ public class UserRequest {
     private String fullName;
     private String email;
     private String phone;
+    @PastOrPresent
+    private LocalDate dateOfBirth;
     @NotNull
     private Role role;
     private Boolean active;
@@ -55,6 +60,14 @@ public class UserRequest {
 
     public void setPhone(String phone) {
         this.phone = phone;
+    }
+
+    public LocalDate getDateOfBirth() {
+        return dateOfBirth;
+    }
+
+    public void setDateOfBirth(LocalDate dateOfBirth) {
+        this.dateOfBirth = dateOfBirth;
     }
 
     public Role getRole() {

@@ -134,6 +134,10 @@ public class UserService {
         user.setFullName(request.getFullName());
         user.setEmail(request.getEmail());
         user.setPhone(request.getPhone());
+        // Older app versions don't send it; keep the date given at registration.
+        if (request.getDateOfBirth() != null) {
+            user.setDateOfBirth(request.getDateOfBirth());
+        }
         user.setRole(request.getRole());
         user.setActive(request.getActive() == null || request.getActive());
         if (creating || (request.getPassword() != null && !request.getPassword().isBlank())) {

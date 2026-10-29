@@ -91,6 +91,22 @@ class UserServiceTest {
     }
 
     @Test
+    void staffSetTheDateOfBirthAndAnOlderAppKeepsIt() {
+        UserAccount student = account(2L, Role.STUDENT);
+        when(users.findById(2L)).thenReturn(Optional.of(student));
+        when(users.save(student)).thenReturn(student);
+        UserRequest edit = request(Role.STUDENT);
+        edit.setUsername("u2");
+        edit.setDateOfBirth(java.time.LocalDate.of(2012, 4, 9));
+        service.update(2L, edit, librarian);
+        assertEquals(java.time.LocalDate.of(2012, 4, 9), student.getDateOfBirth());
+
+        edit.setDateOfBirth(null);
+        service.update(2L, edit, librarian);
+        assertEquals(java.time.LocalDate.of(2012, 4, 9), student.getDateOfBirth());
+    }
+
+    @Test
     void storesAnAadhaarPhotoForTheUser() {
         when(users.findById(2L)).thenReturn(Optional.of(account(2L, Role.STUDENT)));
         service.saveAadhaarPhoto(2L, photo("image/jpeg"), librarian);
