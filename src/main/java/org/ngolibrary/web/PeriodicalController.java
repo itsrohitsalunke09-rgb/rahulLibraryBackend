@@ -49,7 +49,7 @@ public class PeriodicalController {
 
     /** For the catalog's newspapers tab, so students can see it too. */
     @GetMapping("/subscribed")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("@perm.can('READ')")
     public List<PeriodicalSummary> subscribed() {
         return service.subscribed();
     }
@@ -73,11 +73,13 @@ public class PeriodicalController {
     }
 
     @GetMapping("/register")
+    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN') and @perm.can('READ')")
     public DayRegister register(@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         return service.register(date);
     }
 
     @PutMapping("/register")
+    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN') and @perm.can('WRITE')")
     public DayRegister saveRegister(@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
                                     @RequestBody List<RegisterEntry> entries) {
         return service.saveRegister(date, entries);
@@ -85,22 +87,26 @@ public class PeriodicalController {
 
     /** The magazine register (all staff): each magazine with its subscription year and the issues received. */
     @GetMapping("/magazines")
+    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN') and @perm.can('READ')")
     public List<MagazineCard> magazines() {
         return service.magazines();
     }
 
     @PostMapping("/{id}/receipts")
+    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN') and @perm.can('WRITE')")
     public ReceiptView addReceipt(@PathVariable Long id, @RequestBody ReceiptRequest request) {
         return service.addReceipt(id, request);
     }
 
     @DeleteMapping("/receipts/{receiptId}")
+    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN') and @perm.can('DELETE')")
     public void deleteReceipt(@PathVariable Long receiptId) {
         service.deleteReceipt(receiptId);
     }
 
     /** month as YYYY-MM. */
     @GetMapping("/report")
+    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN') and @perm.can('READ')")
     public MonthReport report(@RequestParam String month) {
         return service.report(YearMonth.parse(month));
     }

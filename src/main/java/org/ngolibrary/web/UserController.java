@@ -44,14 +44,14 @@ public class UserController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN')")
+    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN') and @perm.can('READ')")
     public Page<UserResponse> list(@RequestParam(required = false) Role role,
                                    @RequestParam(required = false) String q, Pageable pageable) {
         return userService.listPaged(role, q, pageable);
     }
 
     @GetMapping("/students")
-    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN')")
+    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN') and @perm.can('READ')")
     public List<UserResponse> searchStudents(@RequestParam(required = false) String q) {
         return userService.searchStudents(q);
     }
@@ -64,14 +64,14 @@ public class UserController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN')")
+    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN') and @perm.can('WRITE')")
     public UserResponse create(@Valid @RequestBody UserRequest request, Authentication authentication) {
         UserAccount currentUser = authService.current(authentication);
         return userService.create(request, currentUser);
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN')")
+    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN') and @perm.can('UPDATE')")
     public UserResponse update(@PathVariable Long id, @Valid @RequestBody UserRequest request,
                                Authentication authentication) {
         UserAccount currentUser = authService.current(authentication);
@@ -86,14 +86,14 @@ public class UserController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public void delete(@PathVariable Long id) {
-        userService.delete(id);
+    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN') and @perm.can('DELETE')")
+    public void delete(@PathVariable Long id, Authentication authentication) {
+        userService.delete(id, authService.current(authentication));
     }
 
     /** The Aadhaar card photo; staff only, and never cached since it is a government ID. */
     @GetMapping("/{id}/aadhaar")
-    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN')")
+    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN') and @perm.can('READ')")
     public ResponseEntity<byte[]> aadhaar(@PathVariable Long id) {
         PhotoStorage.Photo photo = userService.aadhaarPhoto(id);
         return ResponseEntity.ok()
@@ -103,14 +103,14 @@ public class UserController {
     }
 
     @PutMapping(value = "/{id}/aadhaar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN')")
+    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN') and (@perm.can('WRITE') or @perm.can('UPDATE'))")
     public void saveAadhaar(@PathVariable Long id, @RequestPart("photo") MultipartFile photo,
                             Authentication authentication) {
         userService.saveAadhaarPhoto(id, photo, authService.current(authentication));
     }
 
     @DeleteMapping("/{id}/aadhaar")
-    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN')")
+    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN') and @perm.can('UPDATE')")
     public void deleteAadhaar(@PathVariable Long id, Authentication authentication) {
         userService.deleteAadhaarPhoto(id, authService.current(authentication));
     }

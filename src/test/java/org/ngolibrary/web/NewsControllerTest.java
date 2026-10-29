@@ -18,7 +18,9 @@ import org.ngolibrary.service.PhotoStorage;
 import org.ngolibrary.domain.UserAccount;
 import org.ngolibrary.security.AppUserDetailsService;
 import org.ngolibrary.security.JwtService;
+import org.ngolibrary.security.PermissionChecker;
 import org.ngolibrary.security.SecurityConfig;
+import org.ngolibrary.service.PermissionService;
 import org.ngolibrary.service.AuthService;
 import org.ngolibrary.service.NewsService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,8 +35,16 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(NewsController.class)
-@Import(SecurityConfig.class)
+@Import({SecurityConfig.class, PermissionChecker.class})
 class NewsControllerTest {
+
+    @MockBean
+    private PermissionService permissionService;
+
+    @org.junit.jupiter.api.BeforeEach
+    void defaultPermissions() {
+        TestPermissions.defaults(permissionService);
+    }
 
     private static final String STORY_JSON = "{\"headline\":\"Book fair\",\"body\":\"Join us\",\"eventDate\":\"2026-10-01\"}";
 

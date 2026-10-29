@@ -38,12 +38,14 @@ public class NewsController {
     }
 
     @GetMapping
+    @PreAuthorize("@perm.can('READ')")
     public Page<NewsStoryResponse> list(@RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size, @RequestParam(required = false) String q) {
         return newsService.list(page, size, q);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("@perm.can('READ')")
     public NewsStoryResponse get(@PathVariable Long id) {
         return newsService.get(id);
     }

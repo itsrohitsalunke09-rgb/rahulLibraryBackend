@@ -13,7 +13,9 @@ import org.ngolibrary.domain.PeriodicalFrequency;
 import org.ngolibrary.dto.PeriodicalDtos.PeriodicalSummary;
 import org.ngolibrary.security.AppUserDetailsService;
 import org.ngolibrary.security.JwtService;
+import org.ngolibrary.security.PermissionChecker;
 import org.ngolibrary.security.SecurityConfig;
+import org.ngolibrary.service.PermissionService;
 import org.ngolibrary.service.PeriodicalService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -23,8 +25,16 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(PeriodicalController.class)
-@Import(SecurityConfig.class)
+@Import({SecurityConfig.class, PermissionChecker.class})
 class PeriodicalControllerTest {
+
+    @MockBean
+    private PermissionService permissionService;
+
+    @org.junit.jupiter.api.BeforeEach
+    void defaultPermissions() {
+        TestPermissions.defaults(permissionService);
+    }
 
     @Autowired
     private MockMvc mvc;

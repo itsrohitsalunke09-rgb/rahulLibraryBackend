@@ -163,11 +163,12 @@ public class UserService {
         return UserResponse.from(users.save(user));
     }
 
-    public void delete(Long id) {
-        if (!users.existsById(id)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
+    /** Deletes an account; with the Delete permission a librarian may too, but never an admin's or their own. */
+    public void delete(Long id, UserAccount currentUser) {
+        UserAccount user = editable(id, currentUser);
+        if (user.getId().equals(currentUser.getId())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You can't delete your own account");
         }
-        UserAccount user = users.findById(id).orElseThrow();
         if (user.getRole() == Role.STUDENT) {
             long activeIssues = issues.countByStudentIdAndStatus(id, org.ngolibrary.domain.IssueStatus.ISSUED);
             if (activeIssues > 0) {

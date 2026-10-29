@@ -115,7 +115,7 @@ class UserServiceTest {
     void deletingAnAccountDeletesItsAadhaarPhoto() {
         when(users.existsById(2L)).thenReturn(true);
         when(users.findById(2L)).thenReturn(Optional.of(account(2L, Role.LIBRARIAN)));
-        service.delete(2L);
+        service.delete(2L, account(9L, Role.ADMIN));
         verify(photos).delete("aadhaar/2");
     }
 
@@ -125,7 +125,16 @@ class UserServiceTest {
         when(users.findById(2L)).thenReturn(Optional.of(account(2L, Role.LIBRARIAN)));
         org.mockito.Mockito.doThrow(new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE))
                 .when(photos).delete("aadhaar/2");
-        service.delete(2L);
+        service.delete(2L, account(9L, Role.ADMIN));
         verify(users).deleteById(2L);
+    }
+
+    @Test
+    void aLibrarianWithDeleteStillCannotDeleteAnAdminOrThemselves() {
+        when(users.findById(2L)).thenReturn(Optional.of(account(2L, Role.ADMIN)));
+        assertStatus(HttpStatus.FORBIDDEN, () -> service.delete(2L, librarian));
+        when(users.findById(1L)).thenReturn(Optional.of(librarian));
+        assertStatus(HttpStatus.BAD_REQUEST, () -> service.delete(1L, librarian));
+        verify(users, never()).deleteById(any());
     }
 }

@@ -39,11 +39,13 @@ public class BookController {
     }
 
     @GetMapping
+    @PreAuthorize("@perm.can('READ')")
     public List<Book> list(@RequestParam(required = false) String q) {
         return bookService.list(q);
     }
 
     @GetMapping("/paged")
+    @PreAuthorize("@perm.can('READ')")
     public Page<Book> listPaged(
             @RequestParam(required = false) String q,
             @RequestParam(defaultValue = "0") int page,
@@ -59,30 +61,31 @@ public class BookController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN')")
+    @PreAuthorize("@perm.can('WRITE')")
     public Book create(@Valid @RequestBody BookRequest request) {
         return bookService.create(request);
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("@perm.can('READ')")
     public Book getById(@PathVariable Long id) {
         return bookService.getById(id);
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN')")
+    @PreAuthorize("@perm.can('UPDATE')")
     public Book update(@PathVariable Long id, @Valid @RequestBody BookRequest request) {
         return bookService.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("@perm.can('DELETE')")
     public void delete(@PathVariable Long id) {
         bookService.delete(id);
     }
 
     @PostMapping(value = "/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN')")
+    @PreAuthorize("@perm.can('WRITE')")
     public BookImportService.BulkImportResult importBooks(@RequestPart("file") MultipartFile file) {
         return importService.importFromExcel(file);
     }

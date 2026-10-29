@@ -13,7 +13,9 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.ngolibrary.security.AppUserDetailsService;
 import org.ngolibrary.security.JwtService;
+import org.ngolibrary.security.PermissionChecker;
 import org.ngolibrary.security.SecurityConfig;
+import org.ngolibrary.service.PermissionService;
 import org.ngolibrary.service.BookImportService;
 import org.ngolibrary.service.BookService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,8 +28,16 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(BookController.class)
-@Import(SecurityConfig.class)
+@Import({SecurityConfig.class, PermissionChecker.class})
 class BookControllerTest {
+
+    @MockBean
+    private PermissionService permissionService;
+
+    @org.junit.jupiter.api.BeforeEach
+    void defaultPermissions() {
+        TestPermissions.defaults(permissionService);
+    }
 
     @Autowired
     private MockMvc mvc;
