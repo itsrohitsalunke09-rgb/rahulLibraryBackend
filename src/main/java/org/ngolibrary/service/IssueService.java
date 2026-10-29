@@ -78,6 +78,13 @@ public class IssueService {
         return page.map(IssueResponse::from);
     }
 
+    /** A student's reading profile: the books they were given in the year, newest first. */
+    @Transactional(readOnly = true)
+    public List<IssueResponse> studentYear(Long studentId, int year) {
+        return issues.findByStudentIdAndIssueDateBetweenOrderByIssueDateDescIdDesc(studentId, LocalDate.of(year, 1, 1),
+                LocalDate.of(year, 12, 31)).stream().map(IssueResponse::from).toList();
+    }
+
     /** The books report's circles: how many books each student was given in the year. */
     @Transactional(readOnly = true)
     public List<org.ngolibrary.dto.ReaderCount> readersInYear(int year) {

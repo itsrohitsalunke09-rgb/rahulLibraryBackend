@@ -35,6 +35,10 @@ public interface BookIssueRepository extends JpaRepository<BookIssue, Long> {
 
     List<BookIssue> findByStatus(IssueStatus status);
 
+    /** One student's books given between two dates, newest first (the reading profile). */
+    @EntityGraph(attributePaths = {"book", "student", "issuedBy"})
+    List<BookIssue> findByStudentIdAndIssueDateBetweenOrderByIssueDateDescIdDesc(Long studentId, LocalDate from, LocalDate to);
+
     /** One student's count of books given between two dates. */
     interface ReaderCountRow {
         Long getStudentId();

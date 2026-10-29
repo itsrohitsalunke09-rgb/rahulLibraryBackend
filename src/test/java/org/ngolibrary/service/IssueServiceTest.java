@@ -154,4 +154,18 @@ class IssueServiceTest {
                 .thenReturn(List.of(row(7L, "Kunal", 23L)));
         assertEquals(23L, service.readersInYear(2026).get(0).books());
     }
+
+    @Test
+    void aReadingProfileAsksForTheStudentsBooksInThatYear() {
+        BookIssue issue = new BookIssue();
+        issue.setBook(book);
+        issue.setStudent(student);
+        issue.setIssuedBy(librarian);
+        issue.setIssueDate(LocalDate.of(2026, 3, 3));
+        issue.setDueDate(LocalDate.of(2026, 3, 17));
+        issue.setStatus(IssueStatus.RETURNED);
+        when(issues.findByStudentIdAndIssueDateBetweenOrderByIssueDateDescIdDesc(2L, LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31)))
+                .thenReturn(List.of(issue));
+        assertEquals("Yayati", service.studentYear(2L, 2026).get(0).getBookTitle());
+    }
 }

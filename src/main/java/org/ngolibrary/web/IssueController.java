@@ -59,6 +59,13 @@ public class IssueController {
         return issueService.issueYears();
     }
 
+    /** Reading Galaxy profile: one student's books given in the year. */
+    @GetMapping("/issues/student/{studentId}")
+    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN')")
+    public List<IssueResponse> studentYear(@PathVariable Long studentId, @RequestParam int year) {
+        return issueService.studentYear(studentId, year);
+    }
+
     /** Books report circles: books given to each student in the year. */
     @GetMapping("/issues/readers")
     @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN')")
