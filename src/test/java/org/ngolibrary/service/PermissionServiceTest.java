@@ -53,8 +53,8 @@ class PermissionServiceTest {
     }
 
     @Test
-    void aNewPermissionGetsItsDefaultsOnceSoLibrariansKeepIssuing() {
-        // Saved before Call and Issue book existed: admin rows for the first five only.
+    void aNewPermissionGetsItsDefaultsOnceSoLibrariansCanMarkRegisters() {
+        // Saved before Call and Register existed: admin rows for the first five only.
         when(repository.findAll()).thenReturn(List.of(
                 new RolePermission(Role.LIBRARIAN, Permission.READ),
                 new RolePermission(Role.ADMIN, Permission.READ), new RolePermission(Role.ADMIN, Permission.WRITE),
@@ -62,11 +62,11 @@ class PermissionServiceTest {
                 new RolePermission(Role.ADMIN, Permission.GALAXY_VIEW)));
         when(repository.save(org.mockito.ArgumentMatchers.any())).thenAnswer(call -> call.getArgument(0));
         service.load();
-        assertTrue(service.has(Role.LIBRARIAN, Permission.ISSUE_BOOK));
+        assertTrue(service.has(Role.LIBRARIAN, Permission.REGISTER));
         assertFalse(service.has(Role.LIBRARIAN, Permission.CALL));
         // Old ticks are left alone: the librarian had only Read, not the default Write.
         assertFalse(service.has(Role.LIBRARIAN, Permission.WRITE));
-        assertFalse(service.has(Role.STUDENT, Permission.ISSUE_BOOK));
+        assertFalse(service.has(Role.STUDENT, Permission.REGISTER));
     }
 
     @Test

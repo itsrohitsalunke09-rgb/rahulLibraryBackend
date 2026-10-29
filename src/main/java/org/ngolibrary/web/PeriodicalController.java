@@ -79,7 +79,7 @@ public class PeriodicalController {
     }
 
     @PutMapping("/register")
-    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN') and @perm.can('WRITE')")
+    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN') and @perm.can('REGISTER')")
     public DayRegister saveRegister(@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
                                     @RequestBody List<RegisterEntry> entries) {
         return service.saveRegister(date, entries);
@@ -93,7 +93,7 @@ public class PeriodicalController {
     }
 
     @PostMapping("/{id}/receipts")
-    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN') and @perm.can('WRITE')")
+    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN') and @perm.can('REGISTER')")
     public ReceiptView addReceipt(@PathVariable Long id, @RequestBody ReceiptRequest request) {
         return service.addReceipt(id, request);
     }

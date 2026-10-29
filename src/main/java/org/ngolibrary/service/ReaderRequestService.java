@@ -28,6 +28,11 @@ public class ReaderRequestService {
         return requests.findAllByOrderByCreatedAtDesc();
     }
 
+    /** The student's own suggestions still open, newest first. */
+    public List<ReaderRequest> mySuggestions(UserAccount student) {
+        return requests.findAllByKindAndStudentIdOrderByCreatedAtDesc(Kind.SUGGESTION, student.getId());
+    }
+
     /** One open request per student and book: asking again only says it is already asked. */
     public ReaderRequest request(Long bookId, UserAccount student) {
         Book book = books.findById(bookId)
@@ -46,7 +51,7 @@ public class ReaderRequestService {
         return requests.save(new ReaderRequest(Kind.SUGGESTION, student, null, t, trimmed(author, 200), trimmed(note, 300)));
     }
 
-    /** Dealt with: the book was given, or the suggestion considered. */
+    /** Dealt with or deleted: the row goes, so the student may ask for the same book again. */
     public void clear(Long id) {
         if (!requests.existsById(id)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Request not found");

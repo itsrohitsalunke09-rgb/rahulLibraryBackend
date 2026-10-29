@@ -9,5 +9,7 @@ public interface ReaderRequestRepository extends JpaRepository<ReaderRequest, Lo
 
     List<ReaderRequest> findAllByOrderByCreatedAtDesc();
 
+    List<ReaderRequest> findAllByKindAndStudentIdOrderByCreatedAtDesc(ReaderRequest.Kind kind, Long studentId);
+
     boolean existsByKindAndStudentIdAndBookId(ReaderRequest.Kind kind, Long studentId, Long bookId);
 }

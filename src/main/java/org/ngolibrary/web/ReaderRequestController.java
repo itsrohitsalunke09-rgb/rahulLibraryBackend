@@ -37,6 +37,12 @@ public class ReaderRequestController {
         return service.list();
     }
 
+    @GetMapping("/suggestions/mine")
+    @PreAuthorize("hasRole('STUDENT')")
+    public List<ReaderRequest> mySuggestions(Authentication authentication) {
+        return service.mySuggestions(authService.current(authentication));
+    }
+
     @PostMapping("/books/{bookId}")
     @PreAuthorize("hasRole('STUDENT')")
     public ReaderRequest request(@PathVariable Long bookId, Authentication authentication) {
@@ -50,7 +56,8 @@ public class ReaderRequestController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN') and @perm.can('UPDATE')")
+    // Done needs Update, Delete needs Delete; both remove the row.
+    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN') and (@perm.can('UPDATE') or @perm.can('DELETE'))")
     public void clear(@PathVariable Long id) {
         service.clear(id);
     }
