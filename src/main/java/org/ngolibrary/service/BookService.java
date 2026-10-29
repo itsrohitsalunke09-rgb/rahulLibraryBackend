@@ -109,13 +109,14 @@ public class BookService {
         }
     }
 
+    /**
+     * Every book is one physical book (a second copy is entered as its own book with its own registration
+     * number), so a new book is one copy, available. Description is no longer entered; old ones are kept.
+     */
     private void apply(Book book, BookRequest request, boolean creating) {
-        int oldTotal = book.getTotalCopies();
-        int oldAvailable = book.getAvailableCopies();
         book.setTitle(request.getTitle());
         book.setAuthor(request.getAuthor());
         applyCategory(book, request);
-        book.setDescription(request.getDescription());
         book.setDate(request.getDate());
         book.setRegistrationNumber(request.getRegistrationNumber());
         book.setPublication(request.getPublication());
@@ -124,17 +125,9 @@ public class BookService {
         book.setSeller(request.getSeller());
         book.setReceiptNumber(request.getReceiptNumber());
         book.setPrice(request.getPrice());
-        book.setTotalCopies(request.getTotalCopies());
         if (creating) {
-            book.setAvailableCopies(request.getTotalCopies());
-        } else {
-            int issued = oldTotal - oldAvailable;
-            int available = request.getTotalCopies() - issued;
-            if (available < 0) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                        "Total copies cannot be less than currently issued copies (" + issued + ")");
-            }
-            book.setAvailableCopies(available);
+            book.setTotalCopies(1);
+            book.setAvailableCopies(1);
         }
     }
 }

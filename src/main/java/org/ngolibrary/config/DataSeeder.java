@@ -157,6 +157,7 @@ public class DataSeeder {
     private Book book(String title, String author, String registrationNumber, String category, String description,
                        String publication, Integer publicationYear, Integer pageCount, String seller,
                        String receiptNumber, Double price, int copies) {
+        // shortcut: the seed list still names copies; every book is one copy now, so it is ignored.
         Book book = new Book();
         book.setTitle(title);
         book.setAuthor(author);
@@ -169,8 +170,8 @@ public class DataSeeder {
         book.setSeller(seller);
         book.setReceiptNumber(receiptNumber);
         book.setPrice(price);
-        book.setTotalCopies(copies);
-        book.setAvailableCopies(copies);
+        book.setTotalCopies(1);
+        book.setAvailableCopies(1);
         return book;
     }
 }

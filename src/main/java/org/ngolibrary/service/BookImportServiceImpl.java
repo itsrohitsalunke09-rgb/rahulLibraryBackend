@@ -14,12 +14,33 @@ import java.io.InputStream;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
+/**
+ * Imports books from the first sheet of an Excel file. The first row holds the headings and each column is
+ * found by its heading, in any order; columns the import doesn't know (Total Copies, Description …) are skipped.
+ */
 @Service
 public class BookImportServiceImpl implements BookImportService {
 
     private static final Logger log = LoggerFactory.getLogger(BookImportServiceImpl.class);
+
+    /** The headings each field accepts, compared on letters and digits only ("Reg. No." = "regno"). */
+    static final Map<String, List<String>> HEADINGS = Map.ofEntries(
+            Map.entry("title", List.of("title", "booktitle")),
+            Map.entry("author", List.of("author")),
+            Map.entry("category", List.of("categoryno", "categorynumber", "category")),
+            Map.entry("date", List.of("date", "dateyyyymmdd")),
+            Map.entry("registration", List.of("registrationnumber", "registrationno", "regno", "regnumber")),
+            Map.entry("publication", List.of("publication", "publisher")),
+            Map.entry("year", List.of("publicationyear")),
+            Map.entry("pages", List.of("pagecount", "pages")),
+            Map.entry("seller", List.of("seller")),
+            Map.entry("receipt", List.of("receiptnumber", "receiptno")),
+            Map.entry("price", List.of("price")));
     private final BookService bookService;
     private final BookCategoryService categoryService;
 
@@ -41,17 +62,21 @@ public class BookImportServiceImpl implements BookImportService {
              Workbook workbook = new XSSFWorkbook(is)) {
 
             Sheet sheet = workbook.getSheetAt(0);
-            
-            // Skip header row
+            Map<String, Integer> columns = columns(sheet.getRow(0));
+            if (!columns.containsKey("title") || !columns.containsKey("author")) {
+                errors.add("The first row must have the headings Title and Author.");
+                return new BulkImportResult(0, 0, 0, errors, warnings);
+            }
+
             for (int i = 1; i <= sheet.getLastRowNum(); i++) {
                 Row row = sheet.getRow(i);
-                if (row == null || isEmptyRow(row)) {
+                if (row == null || isEmptyRow(row, columns)) {
                     continue;
                 }
                 totalRows++;
 
                 try {
-                    BookRequest request = parseRow(row, i + 1, warnings);
+                    BookRequest request = parseRow(row, columns, i + 1, warnings);
                     bookService.create(request);
                     successful++;
                 } catch (Exception e) {
@@ -69,43 +94,52 @@ public class BookImportServiceImpl implements BookImportService {
         return new BulkImportResult(totalRows, successful, failed, errors, warnings);
     }
 
-    private boolean isEmptyRow(Row row) {
-        for (int c = 0; c < 3; c++) {
-            Cell cell = row.getCell(c);
-            if (cell != null && cell.getCellType() != CellType.BLANK && 
-                !cell.toString().trim().isEmpty()) {
-                return false;
-            }
+    /** Field → column number, from the heading row; a field with no matching heading is left out. */
+    static Map<String, Integer> columns(Row headings) {
+        Map<String, Integer> columns = new HashMap<>();
+        if (headings == null) {
+            return columns;
         }
-        return true;
+        for (Cell cell : headings) {
+            String heading = new DataFormatter().formatCellValue(cell).toLowerCase(Locale.ROOT).replaceAll("[^\\p{L}\\p{N}]", "");
+            HEADINGS.forEach((field, names) -> {
+                if (names.contains(heading)) {
+                    columns.putIfAbsent(field, cell.getColumnIndex());
+                }
+            });
+        }
+        return columns;
     }
 
-    private BookRequest parseRow(Row row, int rowNumber, List<String> warnings) {
+    /** A row with no title and no author is a blank line. */
+    private boolean isEmptyRow(Row row, Map<String, Integer> columns) {
+        return getStringCellValue(row, columns.get("title")) == null && getStringCellValue(row, columns.get("author")) == null;
+    }
+
+    private BookRequest parseRow(Row row, Map<String, Integer> columns, int rowNumber, List<String> warnings) {
         BookRequest request = new BookRequest();
-        
+
         // Required fields
-        request.setTitle(getStringCellValue(row, 0));
-        request.setAuthor(getStringCellValue(row, 1));
-        // Column C holds the category number from the master; an unknown number imports the book without one.
-        String categoryNumber = getCategoryNumber(row, 2);
+        request.setTitle(getStringCellValue(row, columns.get("title")));
+        request.setAuthor(getStringCellValue(row, columns.get("author")));
+        // The category number from the master; an unknown number imports the book without one.
+        String categoryNumber = getCategoryNumber(row, columns.get("category"));
         if (categoryNumber != null) {
             categoryService.findByNumber(categoryNumber).ifPresentOrElse(
                     category -> request.setCategoryId(category.getId()),
                     () -> warnings.add("Row " + rowNumber + ": category number " + categoryNumber
                             + " is not in the category master, so the book was added without a category"));
         }
-        request.setTotalCopies(getIntCellValue(row, 3));
-        
+
         // Optional fields
-        request.setDescription(getStringCellValue(row, 4));
-        request.setDate(parseDate(row, 5));
-        request.setRegistrationNumber(getStringCellValue(row, 6));
-        request.setPublication(getStringCellValue(row, 7));
-        request.setPublicationYear(getIntCellValue(row, 8));
-        request.setPageCount(getIntCellValue(row, 9));
-        request.setSeller(getStringCellValue(row, 10));
-        request.setReceiptNumber(getStringCellValue(row, 11));
-        request.setPrice(getDoubleCellValue(row, 12));
+        request.setDate(parseDate(row, columns.get("date")));
+        request.setRegistrationNumber(getStringCellValue(row, columns.get("registration")));
+        request.setPublication(getStringCellValue(row, columns.get("publication")));
+        request.setPublicationYear(getIntCellValue(row, columns.get("year")));
+        request.setPageCount(getIntCellValue(row, columns.get("pages")));
+        request.setSeller(getStringCellValue(row, columns.get("seller")));
+        request.setReceiptNumber(getStringCellValue(row, columns.get("receipt")));
+        request.setPrice(getDoubleCellValue(row, columns.get("price")));
 
         validateRequest(request);
         return request;
@@ -118,15 +152,12 @@ public class BookImportServiceImpl implements BookImportService {
         if (request.getAuthor() == null || request.getAuthor().trim().isEmpty()) {
             throw new IllegalArgumentException("Author is required");
         }
-        if (request.getTotalCopies() == null || request.getTotalCopies() < 1) {
-            throw new IllegalArgumentException("Total copies must be at least 1");
-        }
     }
 
-    private String getStringCellValue(Row row, int cellIndex) {
-        Cell cell = row.getCell(cellIndex);
+    private String getStringCellValue(Row row, Integer cellIndex) {
+        Cell cell = cellIndex == null ? null : row.getCell(cellIndex);
         if (cell == null) return null;
-        
+
         switch (cell.getCellType()) {
             case STRING:
                 return cell.getStringCellValue().trim();
@@ -140,15 +171,15 @@ public class BookImportServiceImpl implements BookImportService {
     }
 
     /** Category number exactly as the cell shows it in Excel (e.g. "456", "456.0", "456.83"); null if blank. */
-    private String getCategoryNumber(Row row, int cellIndex) {
-        Cell cell = row.getCell(cellIndex);
+    private String getCategoryNumber(Row row, Integer cellIndex) {
+        Cell cell = cellIndex == null ? null : row.getCell(cellIndex);
         if (cell == null) return null;
         FormulaEvaluator evaluator = row.getSheet().getWorkbook().getCreationHelper().createFormulaEvaluator();
         String shown = new DataFormatter().formatCellValue(cell, evaluator).trim();
         return shown.isEmpty() ? null : shown;
     }
 
-    private Integer getIntCellValue(Row row, int cellIndex) {
+    private Integer getIntCellValue(Row row, Integer cellIndex) {
         String val = getStringCellValue(row, cellIndex);
         if (val == null || val.trim().isEmpty()) return null;
         try {
@@ -158,10 +189,10 @@ public class BookImportServiceImpl implements BookImportService {
         }
     }
 
-    private Double getDoubleCellValue(Row row, int cellIndex) {
-        Cell cell = row.getCell(cellIndex);
+    private Double getDoubleCellValue(Row row, Integer cellIndex) {
+        Cell cell = cellIndex == null ? null : row.getCell(cellIndex);
         if (cell == null) return null;
-        
+
         switch (cell.getCellType()) {
             case NUMERIC:
                 return cell.getNumericCellValue();
@@ -176,10 +207,10 @@ public class BookImportServiceImpl implements BookImportService {
         }
     }
 
-    private LocalDate parseDate(Row row, int cellIndex) {
-        Cell cell = row.getCell(cellIndex);
+    private LocalDate parseDate(Row row, Integer cellIndex) {
+        Cell cell = cellIndex == null ? null : row.getCell(cellIndex);
         if (cell == null) return null;
-        
+
         try {
             switch (cell.getCellType()) {
                 case NUMERIC:

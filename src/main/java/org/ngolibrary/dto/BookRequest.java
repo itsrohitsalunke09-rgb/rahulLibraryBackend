@@ -2,9 +2,7 @@ package org.ngolibrary.dto;
 
 import java.time.LocalDate;
 
-import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
 
 public class BookRequest {
     @NotBlank
@@ -14,10 +12,6 @@ public class BookRequest {
     private String category;
     /** Master category to link; takes precedence over the category text. */
     private Long categoryId;
-    private String description;
-    @NotNull
-    @Min(1)
-    private Integer totalCopies;
     private LocalDate date;
     private String registrationNumber;
     private String publication;
@@ -57,22 +51,6 @@ public class BookRequest {
 
     public void setCategoryId(Long categoryId) {
         this.categoryId = categoryId;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public Integer getTotalCopies() {
-        return totalCopies;
-    }
-
-    public void setTotalCopies(Integer totalCopies) {
-        this.totalCopies = totalCopies;
     }
 
     public LocalDate getDate() {

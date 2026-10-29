@@ -89,9 +89,9 @@ class IssueServiceTest {
     }
 
     @Test
-    void issueFailsWhenTheLastCopyWasJustTaken() {
+    void issueFailsWhenTheBookWasJustIssued() {
         when(books.takeCopy(1L)).thenReturn(0);
-        assertBadRequest("No copies available", () -> service.issue(request(7), librarian));
+        assertBadRequest("This book is already issued", () -> service.issue(request(7), librarian));
         verify(issues, never()).save(any());
     }
 

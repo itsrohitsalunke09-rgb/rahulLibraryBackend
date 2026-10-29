@@ -202,7 +202,7 @@ public class IssueService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Student already has this book issued");
         }
         if (books.takeCopy(book.getId()) == 0) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No copies available");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "This book is already issued");
         }
 
         BookIssue issue = new BookIssue();
