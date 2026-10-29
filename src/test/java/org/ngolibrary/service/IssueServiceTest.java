@@ -139,4 +139,19 @@ class IssueServiceTest {
         assertEquals(1, moved.size());
         assertEquals("Yayati", moved.get(0).getBookTitle());
     }
+
+    private static BookIssueRepository.ReaderCountRow row(Long id, String name, Long books) {
+        return new BookIssueRepository.ReaderCountRow() {
+            public Long getStudentId() { return id; }
+            public String getStudentName() { return name; }
+            public Long getBooks() { return books; }
+        };
+    }
+
+    @Test
+    void theReadersCountCoversTheWholeYear() {
+        when(issues.countReadersBetween(LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31)))
+                .thenReturn(List.of(row(7L, "Kunal", 23L)));
+        assertEquals(23L, service.readersInYear(2026).get(0).books());
+    }
 }

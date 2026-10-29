@@ -18,6 +18,7 @@ public class IssueResponse {
     private LocalDate returnDate;
     private IssueStatus status;
     private String category;
+    private String registrationNumber;
 
     public static IssueResponse from(BookIssue issue) {
         IssueResponse response = new IssueResponse();
@@ -33,6 +34,7 @@ public class IssueResponse {
         response.returnDate = issue.getReturnDate();
         response.status = issue.getStatus();
         response.category = issue.getBook().getCategory();
+        response.registrationNumber = issue.getBook().getRegistrationNumber();
         if (issue.getStatus() == IssueStatus.ISSUED && issue.getDueDate().isBefore(LocalDate.now())) {
             response.status = IssueStatus.OVERDUE;
         }
@@ -85,6 +87,10 @@ public class IssueResponse {
 
     public String getCategory() {
         return category;
+    }
+
+    public String getRegistrationNumber() {
+        return registrationNumber;
     }
 
     public void setCategory(String category) {

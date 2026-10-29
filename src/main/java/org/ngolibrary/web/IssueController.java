@@ -59,6 +59,13 @@ public class IssueController {
         return issueService.issueYears();
     }
 
+    /** Books report circles: books given to each student in the year. */
+    @GetMapping("/issues/readers")
+    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN')")
+    public List<org.ngolibrary.dto.ReaderCount> readers(@RequestParam int year) {
+        return issueService.readersInYear(year);
+    }
+
     /** Book transactions report: issues given or returned in a month (YYYY-MM). */
     @GetMapping("/issues/month")
     @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN')")

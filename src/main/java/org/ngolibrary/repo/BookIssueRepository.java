@@ -35,6 +35,21 @@ public interface BookIssueRepository extends JpaRepository<BookIssue, Long> {
 
     List<BookIssue> findByStatus(IssueStatus status);
 
+    /** One student's count of books given between two dates. */
+    interface ReaderCountRow {
+        Long getStudentId();
+
+        String getStudentName();
+
+        Long getBooks();
+    }
+
+    /** Books given to each student between the two dates (inclusive), the most first. Plain SQL, checked against the live schema. */
+    @Query(value = "SELECT u.id AS \"studentId\", u.full_name AS \"studentName\", count(*) AS \"books\" FROM book_issues bi"
+            + " JOIN users u ON u.id = bi.student_id WHERE bi.issue_date BETWEEN :from AND :to"
+            + " GROUP BY u.id, u.full_name ORDER BY count(*) DESC, u.full_name", nativeQuery = true)
+    List<ReaderCountRow> countReadersBetween(@Param("from") LocalDate from, @Param("to") LocalDate to);
+
     /** Issues given or returned between the two dates (inclusive), oldest issue first. */
     @EntityGraph(attributePaths = {"book", "student", "issuedBy"})
     @Query("SELECT bi FROM BookIssue bi WHERE bi.issueDate BETWEEN :from AND :to OR bi.returnDate BETWEEN :from AND :to"

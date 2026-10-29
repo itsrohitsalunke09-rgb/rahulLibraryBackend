@@ -78,6 +78,14 @@ public class IssueService {
         return page.map(IssueResponse::from);
     }
 
+    /** The books report's circles: how many books each student was given in the year. */
+    @Transactional(readOnly = true)
+    public List<org.ngolibrary.dto.ReaderCount> readersInYear(int year) {
+        return issues.countReadersBetween(LocalDate.of(year, 1, 1), LocalDate.of(year, 12, 31)).stream()
+                .map(r -> new org.ngolibrary.dto.ReaderCount(r.getStudentId(), r.getStudentName(), r.getBooks()))
+                .toList();
+    }
+
     /** The book transactions report: every issue given or returned in the month. */
     @Transactional(readOnly = true)
     public List<IssueResponse> movedInMonth(YearMonth month) {
