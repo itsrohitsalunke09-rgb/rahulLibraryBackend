@@ -29,7 +29,7 @@ public class PermissionService {
 
     /** Librarian: everything but delete and calling vendors; student: read only. */
     public static final Map<Role, Set<Permission>> DEFAULTS = Map.of(
-            Role.LIBRARIAN, EnumSet.of(Permission.READ, Permission.WRITE, Permission.UPDATE,
+            Role.LIBRARIAN, EnumSet.of(Permission.READ, Permission.WRITE, Permission.UPDATE, Permission.DONE,
                     Permission.REGISTER),
             Role.STUDENT, EnumSet.of(Permission.READ));
 

@@ -14,7 +14,7 @@ import javax.persistence.Table;
 /**
  * A student's request to borrow a catalog book, or suggestion of a book the library doesn't have.
  * Names and titles are copied in, so the list reads the same after a book or account changes.
- * Staff clear it once dealt with.
+ * Staff mark it done once dealt with (it stays, for the student's My books) or delete it.
  */
 @Entity
 @Table(name = "reader_requests")
@@ -50,6 +50,9 @@ public class ReaderRequest {
 
     @Column(nullable = false)
     private LocalDateTime createdAt;
+
+    /** When staff marked it done; empty while still open. Done ones stay listed. */
+    private LocalDateTime doneAt;
 
     protected ReaderRequest() {
     }
@@ -99,5 +102,15 @@ public class ReaderRequest {
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
+    }
+
+    public LocalDateTime getDoneAt() {
+        return doneAt;
+    }
+
+    public void markDone() {
+        if (doneAt == null) {
+            doneAt = LocalDateTime.now();
+        }
     }
 }

@@ -4,7 +4,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Optional;
@@ -56,9 +59,24 @@ class ReaderRequestServiceTest {
         assertEquals("Shyamchi Aai", r.getTitle());
         assertEquals("Asha Patil", r.getStudentName());
 
-        when(requests.existsByKindAndStudentIdAndBookId(Kind.REQUEST, 7L, 3L)).thenReturn(true);
+        when(requests.existsByKindAndStudentIdAndBookIdAndDoneAtIsNull(Kind.REQUEST, 7L, 3L)).thenReturn(true);
         assertEquals(HttpStatus.CONFLICT, status(() -> service.request(3L, student)));
         assertEquals(HttpStatus.NOT_FOUND, status(() -> service.request(4L, student)));
+    }
+
+    @Test
+    void doneKeepsTheRecordAndStampsItOnce() {
+        ReaderRequest r = service.suggest("Wings of Fire", null, null, student);
+        when(requests.findById(5L)).thenReturn(Optional.of(r));
+        assertNull(r.getDoneAt());
+
+        service.done(5L);
+        java.time.LocalDateTime first = r.getDoneAt();
+        assertNotNull(first);
+        service.done(5L);
+        assertEquals(first, r.getDoneAt());
+        verify(requests, never()).deleteById(any());
+        assertEquals(HttpStatus.NOT_FOUND, status(() -> service.done(6L)));
     }
 
     @Test

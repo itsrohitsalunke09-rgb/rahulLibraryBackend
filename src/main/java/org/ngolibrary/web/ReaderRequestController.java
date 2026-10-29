@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -37,10 +38,10 @@ public class ReaderRequestController {
         return service.list();
     }
 
-    @GetMapping("/suggestions/mine")
+    @GetMapping("/mine")
     @PreAuthorize("hasRole('STUDENT')")
-    public List<ReaderRequest> mySuggestions(Authentication authentication) {
-        return service.mySuggestions(authService.current(authentication));
+    public List<ReaderRequest> mine(Authentication authentication) {
+        return service.mine(authService.current(authentication));
     }
 
     @PostMapping("/books/{bookId}")
@@ -55,9 +56,14 @@ public class ReaderRequestController {
         return service.suggest(suggestion.title(), suggestion.author(), suggestion.note(), authService.current(authentication));
     }
 
+    @PutMapping("/{id}/done")
+    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN') and @perm.can('DONE')")
+    public ReaderRequest done(@PathVariable Long id) {
+        return service.done(id);
+    }
+
     @DeleteMapping("/{id}")
-    // Done needs Update, Delete needs Delete; both remove the row.
-    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN') and (@perm.can('UPDATE') or @perm.can('DELETE'))")
+    @PreAuthorize("hasAnyRole('ADMIN','LIBRARIAN') and @perm.can('DELETE')")
     public void clear(@PathVariable Long id) {
         service.clear(id);
     }

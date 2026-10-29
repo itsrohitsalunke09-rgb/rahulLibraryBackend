@@ -9,5 +9,7 @@ public enum Permission {
     /** Phone a newspaper or magazine vendor from the registers. */
     CALL,
     /** Issue and return books, and mark newspapers and magazines received in the registers. */
-    REGISTER
+    REGISTER,
+    /** Mark a student's book request or suggestion done. */
+    DONE
 }

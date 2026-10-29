@@ -28,16 +28,16 @@ public class ReaderRequestService {
         return requests.findAllByOrderByCreatedAtDesc();
     }
 
-    /** The student's own suggestions still open, newest first. */
-    public List<ReaderRequest> mySuggestions(UserAccount student) {
-        return requests.findAllByKindAndStudentIdOrderByCreatedAtDesc(Kind.SUGGESTION, student.getId());
+    /** The student's own requests and suggestions, done ones included, newest first. */
+    public List<ReaderRequest> mine(UserAccount student) {
+        return requests.findAllByStudentIdOrderByCreatedAtDesc(student.getId());
     }
 
     /** One open request per student and book: asking again only says it is already asked. */
     public ReaderRequest request(Long bookId, UserAccount student) {
         Book book = books.findById(bookId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Book not found"));
-        if (requests.existsByKindAndStudentIdAndBookId(Kind.REQUEST, student.getId(), bookId)) {
+        if (requests.existsByKindAndStudentIdAndBookIdAndDoneAtIsNull(Kind.REQUEST, student.getId(), bookId)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "You have already requested this book.");
         }
         return requests.save(new ReaderRequest(Kind.REQUEST, student, bookId, book.getTitle(), book.getAuthor(), null));
@@ -51,7 +51,15 @@ public class ReaderRequestService {
         return requests.save(new ReaderRequest(Kind.SUGGESTION, student, null, t, trimmed(author, 200), trimmed(note, 300)));
     }
 
-    /** Dealt with or deleted: the row goes, so the student may ask for the same book again. */
+    /** Dealt with: it stays listed, marked done; a done request no longer blocks asking again. */
+    public ReaderRequest done(Long id) {
+        ReaderRequest r = requests.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Request not found"));
+        r.markDone();
+        return requests.save(r);
+    }
+
+    /** Deleted: the row goes, so the student may ask for the same book again. */
     public void clear(Long id) {
         if (!requests.existsById(id)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Request not found");
