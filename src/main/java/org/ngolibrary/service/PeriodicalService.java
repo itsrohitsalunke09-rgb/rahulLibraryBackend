@@ -204,7 +204,9 @@ public class PeriodicalService {
         if (r.issueNo() == null || r.issueNo() < 1 || r.issueNo() > 99999) {
             throw bad("Enter the issue number (अंक), e.g. 12.");
         }
-        if (receipts.existsByPeriodicalIdAndIssueNo(periodicalId, r.issueNo())) {
+        // A monthly's अंक numbers may repeat (some restart them); a weekly's or fortnightly's may not.
+        if (p.getFrequency() != PeriodicalFrequency.MONTHLY
+                && receipts.existsByPeriodicalIdAndIssueNo(periodicalId, r.issueNo())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "अंक " + r.issueNo() + " of \"" + p.getName() + "\" is already marked received.");
         }
@@ -213,6 +215,14 @@ public class PeriodicalService {
         }
         if (r.periodTo().isBefore(r.periodFrom())) {
             throw bad("The period must end on or after its start.");
+        }
+        // One अंक per week, fortnight or month: a period that overlaps one already received is a duplicate.
+        if (receipts.existsByPeriodicalIdAndPeriodFromLessThanEqualAndPeriodToGreaterThanEqual(
+                periodicalId, r.periodTo(), r.periodFrom())) {
+            String period = p.getFrequency() == PeriodicalFrequency.MONTHLY ? "month"
+                    : p.getFrequency() == PeriodicalFrequency.FORTNIGHTLY ? "fortnight" : "week";
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "\"" + p.getName() + "\" already has an अंक marked received for this " + period + ".");
         }
         MagazineReceipt receipt = new MagazineReceipt();
         receipt.setPeriodical(p);

@@ -215,10 +215,24 @@ class PeriodicalServiceTest {
     }
 
     @Test
-    void theSameIssueNumberCannotBeMarkedTwice() {
+    void aWeeklysIssueNumberCannotBeMarkedTwiceButAMonthlysCan() {
+        Periodical indiaToday = periodical(3L, "India Today", PeriodicalFrequency.WEEKLY, "60.00", true);
+        when(periodicals.findById(3L)).thenReturn(Optional.of(indiaToday));
+        when(receipts.existsByPeriodicalIdAndIssueNo(3L, 12)).thenReturn(true);
         when(receipts.existsByPeriodicalIdAndIssueNo(2L, 12)).thenReturn(true);
         LocalDate day = LocalDate.of(2026, 10, 5);
-        assertStatus(HttpStatus.CONFLICT, () -> service.addReceipt(2L, new ReceiptRequest(12, day, day, day)));
+        assertStatus(HttpStatus.CONFLICT, () -> service.addReceipt(3L, new ReceiptRequest(12, day, day, day.plusDays(6))));
+        verify(receipts, never()).save(any());
+        // Monthly: अंक 12 again is fine, for a month with no अंक yet.
+        assertEquals(12, service.addReceipt(2L, new ReceiptRequest(12, day, day.withDayOfMonth(1), day.withDayOfMonth(31))).issueNo());
+    }
+
+    @Test
+    void oneIssuePerWeekOrMonth() {
+        LocalDate from = LocalDate.of(2026, 10, 1);
+        LocalDate to = LocalDate.of(2026, 10, 31);
+        when(receipts.existsByPeriodicalIdAndPeriodFromLessThanEqualAndPeriodToGreaterThanEqual(2L, to, from)).thenReturn(true);
+        assertStatus(HttpStatus.CONFLICT, () -> service.addReceipt(2L, new ReceiptRequest(13, from, from, to)));
         verify(receipts, never()).save(any());
     }
 
