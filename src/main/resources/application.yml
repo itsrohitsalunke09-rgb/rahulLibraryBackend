@@ -50,9 +50,12 @@ app:
     # https://localhost = the Android app (Capacitor), http://localhost:8100 = `ionic serve`
     allowed-origins: "http://localhost:4200,http://127.0.0.1:4200,https://rahullibraryshindewadi.vercel.app,https://localhost,http://localhost:8100"
 
-  # Forgot-password codes are sent with Brevo (HTTP API; Render's free plan blocks SMTP).
+  # Forgot-password codes go out over HTTPS (Render's free plan blocks SMTP): first through the
+  # library's Gmail via a Google Apps Script relay (scripts/gmail-relay.gs), else through Brevo.
   # MAIL_FROM must be a sender address verified in Brevo.
   email:
+    gmail-relay-url: ${GMAIL_RELAY_URL:}
+    gmail-relay-secret: ${GMAIL_RELAY_SECRET:}
     brevo-api-key: ${BREVO_API_KEY:}
     from: ${MAIL_FROM:}
     from-name: Rahul Library
