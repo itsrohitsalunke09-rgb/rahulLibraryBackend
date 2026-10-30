@@ -41,6 +41,9 @@ public class MagazineReceipt {
     @Column(name = "period_to", nullable = false)
     private LocalDate periodTo;
 
+    /** Copies of the issue received (1 unless more were bought). */
+    private Integer copies;
+
     public Long getId() {
         return id;
     }
@@ -87,5 +90,14 @@ public class MagazineReceipt {
 
     public void setPeriodTo(LocalDate periodTo) {
         this.periodTo = periodTo;
+    }
+
+    /** Copies received; null on records saved before copies were kept, which count as one. */
+    public int getCopies() {
+        return copies == null ? 1 : copies;
+    }
+
+    public void setCopies(int copies) {
+        this.copies = copies;
     }
 }

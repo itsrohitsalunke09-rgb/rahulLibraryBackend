@@ -34,6 +34,9 @@ public class PeriodicalArrival {
     @Column(nullable = false, precision = 8, scale = 2)
     private BigDecimal price;
 
+    /** Copies of the paper that came that day (1 unless more were bought). */
+    private Integer copies;
+
     public Long getId() {
         return id;
     }
@@ -60,5 +63,14 @@ public class PeriodicalArrival {
 
     public void setPrice(BigDecimal price) {
         this.price = price;
+    }
+
+    /** Copies received; null on records saved before copies were kept, which count as one. */
+    public int getCopies() {
+        return copies == null ? 1 : copies;
+    }
+
+    public void setCopies(int copies) {
+        this.copies = copies;
     }
 }

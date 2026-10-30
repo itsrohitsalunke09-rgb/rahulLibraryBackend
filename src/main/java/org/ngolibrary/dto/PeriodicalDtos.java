@@ -24,11 +24,14 @@ public final class PeriodicalDtos {
     /**
      * A magazine issue: its number (अंक) and dates. Monthly: the published date (from = to = that day).
      * Weekly/fortnightly: the from–to dates it covers. receivedOn is the published date or the week's start.
+     * copies: how many of the issue came (null = 1).
      */
-    public record ReceiptRequest(Integer issueNo, LocalDate receivedOn, LocalDate periodFrom, LocalDate periodTo) {
+    public record ReceiptRequest(Integer issueNo, LocalDate receivedOn, LocalDate periodFrom, LocalDate periodTo,
+                                 Integer copies) {
     }
 
-    public record ReceiptView(Long id, Integer issueNo, LocalDate receivedOn, LocalDate periodFrom, LocalDate periodTo) {
+    public record ReceiptView(Long id, Integer issueNo, LocalDate receivedOn, LocalDate periodFrom, LocalDate periodTo,
+                              int copies) {
     }
 
     /** One weekly/fortnightly/monthly magazine with its subscription year and every issue received. */
@@ -43,10 +46,11 @@ public final class PeriodicalDtos {
 
     /** One line of a day's register: whether the copy came and what it cost. */
     public record RegisterRow(Long periodicalId, String name, String language, PeriodicalFrequency frequency,
-                              BigDecimal defaultPrice, boolean arrived, BigDecimal price, String contactNumber) {
+                              BigDecimal defaultPrice, boolean arrived, BigDecimal price, String contactNumber, int copies) {
     }
 
-    public record RegisterEntry(Long periodicalId, boolean arrived, BigDecimal price) {
+    /** copies: how many came (null = 1); price is per copy. */
+    public record RegisterEntry(Long periodicalId, boolean arrived, BigDecimal price, Integer copies) {
     }
 
     public record DayRegister(LocalDate date, List<RegisterRow> rows) {
@@ -54,7 +58,8 @@ public final class PeriodicalDtos {
 
     /**
      * missingDays: days so far this month a daily paper didn't come (null for non-daily).
-     * prices: one entry per day of the month (index 0 = the 1st), the price paid or null when no copy came.
+     * prices: one entry per day of the month (index 0 = the 1st), the amount paid (price × copies) or null when none came.
+     * issues: copies received in the month.
      */
     public record ReportRow(Long periodicalId, String name, PeriodicalFrequency frequency, long issues, BigDecimal amount,
                             Long missingDays, List<BigDecimal> prices) {

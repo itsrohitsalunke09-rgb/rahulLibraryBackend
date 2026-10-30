@@ -101,7 +101,8 @@ public class PeriodicalService {
             PeriodicalArrival entry = entries.get(p.getId());
             if (daily(p) && (p.isActive() || entry != null)) {
                 rows.add(new RegisterRow(p.getId(), p.getName(), p.getLanguage(), p.getFrequency(), p.getPrice(),
-                        entry != null, entry != null ? entry.getPrice() : p.getPrice(), p.getContactNumber()));
+                        entry != null, entry != null ? entry.getPrice() : p.getPrice(), p.getContactNumber(),
+                        entry != null ? entry.getCopies() : 1));
             }
         }
         return new DayRegister(date, rows);
@@ -133,6 +134,7 @@ public class PeriodicalService {
                 entry.setDate(date);
             }
             entry.setPrice(price(e.price() == null ? p.getPrice() : e.price()));
+            entry.setCopies(copies(e.copies()));
             arrivals.save(entry);
         }
         return register(date);
@@ -150,11 +152,13 @@ public class PeriodicalService {
         LocalDate countUntil = to.isAfter(today) ? today : to;
         long daysSoFar = countUntil.isBefore(from) ? 0 : ChronoUnit.DAYS.between(from, countUntil) + 1;
 
-        // Price paid per paper per day of the month (null = no copy that day).
+        // Amount paid per paper per day of the month, price × copies (null = no copy that day), and the copies.
         Map<Long, BigDecimal[]> byDay = new java.util.HashMap<>();
+        Map<Long, Long> copiesOf = new java.util.HashMap<>();
         for (PeriodicalArrival a : arrivals.findByDateBetween(from, to)) {
             byDay.computeIfAbsent(a.getPeriodical().getId(), id -> new BigDecimal[month.lengthOfMonth()])
-                    [a.getDate().getDayOfMonth() - 1] = a.getPrice();
+                    [a.getDate().getDayOfMonth() - 1] = a.getPrice().multiply(BigDecimal.valueOf(a.getCopies()));
+            copiesOf.merge(a.getPeriodical().getId(), (long) a.getCopies(), Long::sum);
         }
         List<ReportRow> rows = new ArrayList<>();
         long totalIssues = 0;
@@ -165,10 +169,12 @@ public class PeriodicalService {
                 continue;
             }
             List<BigDecimal> prices = java.util.Arrays.asList(days == null ? new BigDecimal[month.lengthOfMonth()] : days);
-            long issues = prices.stream().filter(java.util.Objects::nonNull).count();
+            long daysCame = prices.stream().filter(java.util.Objects::nonNull).count();
+            long issues = copiesOf.getOrDefault(p.getId(), 0L);
             BigDecimal amount = prices.stream().filter(java.util.Objects::nonNull).reduce(BigDecimal.ZERO, BigDecimal::add);
+            // Missing counts days with no copy, however many copies came on the others.
             Long missing = p.getFrequency() == PeriodicalFrequency.DAILY && p.isActive()
-                    ? Math.max(0, daysSoFar - issues) : null;
+                    ? Math.max(0, daysSoFar - daysCame) : null;
             rows.add(new ReportRow(p.getId(), p.getName(), p.getFrequency(), issues, amount, missing, prices));
             totalIssues += issues;
             totalAmount = totalAmount.add(amount);
@@ -216,10 +222,11 @@ public class PeriodicalService {
         if (r.periodTo().isBefore(r.periodFrom())) {
             throw bad("The period must end on or after its start.");
         }
-        // One अंक per week, fortnight or month: a period that overlaps one already received is a duplicate.
+        // One अंक per week or fortnight, and per published date for a monthly: an overlapping period is a duplicate.
         if (receipts.existsByPeriodicalIdAndPeriodFromLessThanEqualAndPeriodToGreaterThanEqual(
                 periodicalId, r.periodTo(), r.periodFrom())) {
-            String period = p.getFrequency() == PeriodicalFrequency.MONTHLY ? "month"
+            // A monthly is dated by its published day (from = to), so its clash is that day.
+            String period = p.getFrequency() == PeriodicalFrequency.MONTHLY ? "published date"
                     : p.getFrequency() == PeriodicalFrequency.FORTNIGHTLY ? "fortnight" : "week";
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "\"" + p.getName() + "\" already has an अंक marked received for this " + period + ".");
@@ -230,6 +237,7 @@ public class PeriodicalService {
         receipt.setReceivedOn(r.receivedOn());
         receipt.setPeriodFrom(r.periodFrom());
         receipt.setPeriodTo(r.periodTo());
+        receipt.setCopies(copies(r.copies()));
         return view(receipts.save(receipt));
     }
 
@@ -242,7 +250,18 @@ public class PeriodicalService {
     }
 
     private static ReceiptView view(MagazineReceipt r) {
-        return new ReceiptView(r.getId(), r.getIssueNo(), r.getReceivedOn(), r.getPeriodFrom(), r.getPeriodTo());
+        return new ReceiptView(r.getId(), r.getIssueNo(), r.getReceivedOn(), r.getPeriodFrom(), r.getPeriodTo(), r.getCopies());
+    }
+
+    /** Copies received: 1 when not given, else 1 to 99. */
+    private static int copies(Integer copies) {
+        if (copies == null) {
+            return 1;
+        }
+        if (copies < 1 || copies > 99) {
+            throw bad("Copies must be between 1 and 99.");
+        }
+        return copies;
     }
 
     private void apply(Periodical p, PeriodicalRequest r) {
