@@ -56,7 +56,7 @@ class PasswordResetServiceTest {
         service.sendCode(" asha@example.com ");
         ArgumentCaptor<String> text = ArgumentCaptor.forClass(String.class);
         verify(email).send(eq("asha@example.com"), eq("Asha Patil"), anyString(), text.capture());
-        Matcher m = Pattern.compile("code is (\\d{6})").matcher(text.getValue());
+        Matcher m = Pattern.compile("कोड आहे: (\\d{6})").matcher(text.getValue());
         assertTrue(m.find());
         return m.group(1);
     }

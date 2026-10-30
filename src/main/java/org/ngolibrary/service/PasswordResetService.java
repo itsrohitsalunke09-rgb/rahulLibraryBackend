@@ -58,12 +58,16 @@ public class PasswordResetService {
         user.setResetCodeExpiresAt(now.plus(CODE_LIFETIME));
         user.setResetCodeAttempts(0);
         users.save(user);
-        email.send(user.getEmail(), user.getFullName(), "Your Rahul Library password reset code",
-                "Hello " + user.getFullName() + ",\n\n"
-                        + "Your password reset code is " + code + ". It works for 10 minutes.\n\n"
-                        + "Your username is " + user.getUsername() + ".\n\n"
-                        + "If you didn't ask to reset your password, ignore this email; your password stays the same.\n\n"
-                        + "Rahul Library");
+        // The code in the subject: each email starts its own Gmail conversation (not joining old ones
+        // filed in Spam or archived), and the code shows in the phone's notification.
+        email.send(user.getEmail(), user.getFullName(), "राहुल सार्वजनिक वाचनालय: पासवर्ड बदलण्याचा कोड " + code,
+                "नमस्कार " + user.getFullName() + ",\n\n"
+                        + "तुमचा पासवर्ड बदलण्याचा कोड आहे: " + code + "\n"
+                        + "हा कोड पुढील १० मिनिटांसाठी वैध आहे.\n\n"
+                        + "तुमचे युजरनेम: " + user.getUsername() + "\n\n"
+                        + "तुम्ही पासवर्ड बदलण्याची विनंती केली नसेल, तर या ईमेलकडे दुर्लक्ष करा; तुमचा पासवर्ड बदलणार नाही.\n\n"
+                        + "धन्यवाद,\n"
+                        + "राहुल सार्वजनिक वाचनालय");
     }
 
     /** Sets a new password when the code is right, unused, not expired and not guessed too often. */

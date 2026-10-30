@@ -65,6 +65,7 @@ class EmailSenderTest {
         assertEquals("asha@example.com", sent.path("to").asText());
         assertEquals("Your code", sent.path("subject").asText());
         assertEquals("Code 123456", sent.path("text").asText());
+        assertEquals("Rahul Library", sent.path("fromName").asText());
     }
 
     @Test

@@ -2,7 +2,7 @@
  * Rahul Library: Gmail relay for password reset codes.
  *
  * Runs in the Google account rahul.vachanalaya@gmail.com as a Google Apps Script web app. The server
- * (EmailSender.java) posts {secret, to, toName, subject, text} here over HTTPS, and this sends it with
+ * (EmailSender.java) posts {secret, to, toName, fromName, subject, text} here over HTTPS, and this sends it with
  * that account's Gmail, so the email really comes from Gmail and lands in the inbox, not in spam.
  *
  * Setup (once):
@@ -35,7 +35,7 @@ function doPost(e) {
     return reply({ ok: false, error: 'missing to, subject or text' });
   }
   try {
-    MailApp.sendEmail({ to: msg.to, subject: msg.subject, body: msg.text, name: 'Rahul Library' });
+    MailApp.sendEmail({ to: msg.to, subject: msg.subject, body: msg.text, name: msg.fromName || 'Rahul Library' });
     return reply({ ok: true, left: MailApp.getRemainingDailyQuota() });
   } catch (err) {
     return reply({ ok: false, error: String(err) });

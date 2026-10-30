@@ -67,7 +67,7 @@ public class EmailSender {
     private boolean sendWithGmail(String to, String toName, String subject, String text) {
         try {
             String body = JSON.writeValueAsString(Map.of(
-                    "secret", relaySecret, "to", to, "toName", toName == null ? "" : toName,
+                    "secret", relaySecret, "to", to, "toName", toName == null ? "" : toName, "fromName", fromName,
                     "subject", subject, "text", text));
             HttpRequest request = HttpRequest.newBuilder(URI.create(relayUrl))
                     .timeout(Duration.ofSeconds(20))
