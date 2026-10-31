@@ -33,12 +33,17 @@ public interface BookRepository extends JpaRepository<Book, Long> {
      * (1, 2, 10 rather than 1, 10, 2): shorter values first, then by value; books
      * without a registration number come last.
      */
-    String BY_REGISTRATION = " ORDER BY CASE WHEN b.registrationNumber IS NULL OR trim(b.registrationNumber) = '' "
+    String REGISTRATION_ORDER = " CASE WHEN b.registrationNumber IS NULL OR trim(b.registrationNumber) = '' "
             + "THEN 1 ELSE 0 END, length(trim(b.registrationNumber)), trim(b.registrationNumber), b.id";
+    String BY_REGISTRATION = " ORDER BY" + REGISTRATION_ORDER;
 
     /** The same order reversed (10, 2, 1), newest registrations first; books without a number still last. */
-    String BY_REGISTRATION_DESC = " ORDER BY CASE WHEN b.registrationNumber IS NULL OR trim(b.registrationNumber) = '' "
+    String REGISTRATION_ORDER_DESC = " CASE WHEN b.registrationNumber IS NULL OR trim(b.registrationNumber) = '' "
             + "THEN 1 ELSE 0 END, length(trim(b.registrationNumber)) DESC, trim(b.registrationNumber) DESC, b.id DESC";
+    String BY_REGISTRATION_DESC = " ORDER BY" + REGISTRATION_ORDER_DESC;
+
+    /** In a search, the book whose registration number is exactly what was typed comes first ("12" before 129, 128…). */
+    String EXACT_FIRST = " ORDER BY CASE WHEN lower(trim(b.registrationNumber)) = lower(trim(:q)) THEN 0 ELSE 1 END,";
 
     String SEARCH = " WHERE lower(b.title) LIKE lower(concat('%', :q, '%')) "
             + "OR lower(b.author) LIKE lower(concat('%', :q, '%')) "
@@ -49,13 +54,13 @@ public interface BookRepository extends JpaRepository<Book, Long> {
     @Query(value = "SELECT b FROM Book b" + BY_REGISTRATION, countQuery = "SELECT count(b) FROM Book b")
     Page<Book> findAllByRegistrationNumber(Pageable pageable);
 
-    @Query(value = "SELECT b FROM Book b" + SEARCH + BY_REGISTRATION, countQuery = "SELECT count(b) FROM Book b" + SEARCH)
+    @Query(value = "SELECT b FROM Book b" + SEARCH + EXACT_FIRST + REGISTRATION_ORDER, countQuery = "SELECT count(b) FROM Book b" + SEARCH)
     Page<Book> searchByRegistrationNumber(@Param("q") String q, Pageable pageable);
 
     @Query(value = "SELECT b FROM Book b" + BY_REGISTRATION_DESC, countQuery = "SELECT count(b) FROM Book b")
     Page<Book> findAllByRegistrationNumberDesc(Pageable pageable);
 
-    @Query(value = "SELECT b FROM Book b" + SEARCH + BY_REGISTRATION_DESC, countQuery = "SELECT count(b) FROM Book b" + SEARCH)
+    @Query(value = "SELECT b FROM Book b" + SEARCH + EXACT_FIRST + REGISTRATION_ORDER_DESC, countQuery = "SELECT count(b) FROM Book b" + SEARCH)
     Page<Book> searchByRegistrationNumberDesc(@Param("q") String q, Pageable pageable);
 
     long countByCategoryRef(BookCategory category);
