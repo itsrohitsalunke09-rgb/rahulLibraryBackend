@@ -210,13 +210,21 @@ public class PeriodicalService {
         if (r.periodTo().isBefore(r.periodFrom())) {
             throw bad("The period must end on or after its start.");
         }
-        // A monthly is recorded as the library chooses: no number needed, any date, months may overlap.
-        boolean monthly = p.getFrequency() == PeriodicalFrequency.MONTHLY;
-        if (r.issueNo() == null ? !monthly : r.issueNo() < 1 || r.issueNo() > 99999) {
+        // The अंक is a number, or text written in its place (e.g. जोडअंक), kept as written.
+        String label = r.issueLabel() == null || r.issueLabel().isBlank() ? null : r.issueLabel().trim();
+        if (label != null && label.length() > 30) {
+            throw bad("Keep the अंक to 30 characters.");
+        }
+        if (r.issueNo() != null && (r.issueNo() < 1 || r.issueNo() > 99999)) {
             throw bad("Enter the issue number (अंक), e.g. 12.");
         }
+        // A monthly is recorded as the library chooses: no अंक needed, any date, months may overlap.
+        boolean monthly = p.getFrequency() == PeriodicalFrequency.MONTHLY;
         if (!monthly) {
-            if (receipts.existsByPeriodicalIdAndIssueNo(periodicalId, r.issueNo())) {
+            if (r.issueNo() == null && label == null) {
+                throw bad("Enter the issue number (अंक), e.g. 12.");
+            }
+            if (r.issueNo() != null && receipts.existsByPeriodicalIdAndIssueNo(periodicalId, r.issueNo())) {
                 throw new ResponseStatusException(HttpStatus.CONFLICT,
                         "अंक " + r.issueNo() + " of \"" + p.getName() + "\" is already marked received.");
             }
@@ -234,6 +242,7 @@ public class PeriodicalService {
         MagazineReceipt receipt = new MagazineReceipt();
         receipt.setPeriodical(p);
         receipt.setIssueNo(r.issueNo());
+        receipt.setIssueLabel(label);
         receipt.setReceivedOn(r.receivedOn());
         receipt.setPeriodFrom(r.periodFrom());
         receipt.setPeriodTo(r.periodTo());
@@ -250,7 +259,8 @@ public class PeriodicalService {
     }
 
     private static ReceiptView view(MagazineReceipt r) {
-        return new ReceiptView(r.getId(), r.getIssueNo(), r.getReceivedOn(), r.getPeriodFrom(), r.getPeriodTo(), r.getCopies());
+        return new ReceiptView(r.getId(), r.getIssueNo(), r.getReceivedOn(), r.getPeriodFrom(), r.getPeriodTo(), r.getCopies(),
+                r.getIssueLabel());
     }
 
     /** Copies received: 1 when not given, else 1 to 99. */

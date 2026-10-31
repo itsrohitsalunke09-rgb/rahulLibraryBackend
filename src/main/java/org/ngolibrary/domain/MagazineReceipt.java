@@ -32,6 +32,10 @@ public class MagazineReceipt {
     @Column(name = "issue_no")
     private Integer issueNo;
 
+    /** What was written in place of a number (e.g. जोडअंक), shown and exported as written. */
+    @Column(name = "issue_label", length = 30)
+    private String issueLabel;
+
     @Column(name = "received_on", nullable = false)
     private LocalDate receivedOn;
 
@@ -66,6 +70,14 @@ public class MagazineReceipt {
 
     public void setIssueNo(Integer issueNo) {
         this.issueNo = issueNo;
+    }
+
+    public String getIssueLabel() {
+        return issueLabel;
+    }
+
+    public void setIssueLabel(String issueLabel) {
+        this.issueLabel = issueLabel;
     }
 
     public LocalDate getReceivedOn() {

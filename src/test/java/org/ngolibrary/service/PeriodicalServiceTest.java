@@ -226,7 +226,7 @@ class PeriodicalServiceTest {
     @Test
     void anIssueIsRecordedWithItsNumber() {
         LocalDate published = LocalDate.of(2026, 10, 5);
-        var receipt = service.addReceipt(2L, new ReceiptRequest(12, published, published, published, null));
+        var receipt = service.addReceipt(2L, new ReceiptRequest(12, published, published, published, null, null));
         assertEquals(12, receipt.issueNo());
         assertEquals(published, receipt.periodFrom());
     }
@@ -238,10 +238,10 @@ class PeriodicalServiceTest {
         when(receipts.existsByPeriodicalIdAndIssueNo(3L, 12)).thenReturn(true);
         when(receipts.existsByPeriodicalIdAndIssueNo(2L, 12)).thenReturn(true);
         LocalDate day = LocalDate.of(2026, 10, 5);
-        assertStatus(HttpStatus.CONFLICT, () -> service.addReceipt(3L, new ReceiptRequest(12, day, day, day.plusDays(6), null)));
+        assertStatus(HttpStatus.CONFLICT, () -> service.addReceipt(3L, new ReceiptRequest(12, day, day, day.plusDays(6), null, null)));
         verify(receipts, never()).save(any());
         // Monthly: अंक 12 again is fine, for a month with no अंक yet.
-        assertEquals(12, service.addReceipt(2L, new ReceiptRequest(12, day, day.withDayOfMonth(1), day.withDayOfMonth(31), null)).issueNo());
+        assertEquals(12, service.addReceipt(2L, new ReceiptRequest(12, day, day.withDayOfMonth(1), day.withDayOfMonth(31), null, null)).issueNo());
     }
 
     @Test
@@ -251,9 +251,9 @@ class PeriodicalServiceTest {
         LocalDate from = LocalDate.of(2026, 10, 1);
         LocalDate to = LocalDate.of(2026, 10, 31);
         when(receipts.existsByPeriodicalIdAndPeriodFromLessThanEqualAndPeriodToGreaterThanEqual(any(), any(), any())).thenReturn(true);
-        assertStatus(HttpStatus.CONFLICT, () -> service.addReceipt(3L, new ReceiptRequest(13, from, from, from.plusDays(6), null)));
+        assertStatus(HttpStatus.CONFLICT, () -> service.addReceipt(3L, new ReceiptRequest(13, from, from, from.plusDays(6), null, null)));
         verify(receipts, never()).save(any());
-        assertEquals(13, service.addReceipt(2L, new ReceiptRequest(13, from, from, to, null)).issueNo());
+        assertEquals(13, service.addReceipt(2L, new ReceiptRequest(13, from, from, to, null, null)).issueNo());
     }
 
     @Test
@@ -261,21 +261,32 @@ class PeriodicalServiceTest {
         Periodical indiaToday = periodical(3L, "India Today", PeriodicalFrequency.WEEKLY, "60.00", true);
         when(periodicals.findById(3L)).thenReturn(Optional.of(indiaToday));
         LocalDate today = LocalDate.now();
-        assertStatus(HttpStatus.BAD_REQUEST, () -> service.addReceipt(1L, new ReceiptRequest(1, today, today, today, null)));
-        assertStatus(HttpStatus.BAD_REQUEST, () -> service.addReceipt(3L, new ReceiptRequest(1, today.plusDays(1), today, today, null)));
-        assertStatus(HttpStatus.BAD_REQUEST, () -> service.addReceipt(2L, new ReceiptRequest(1, today, today, today.minusDays(1), null)));
-        assertStatus(HttpStatus.BAD_REQUEST, () -> service.addReceipt(2L, new ReceiptRequest(1, today, null, today, null)));
-        assertStatus(HttpStatus.BAD_REQUEST, () -> service.addReceipt(3L, new ReceiptRequest(null, today, today, today, null)));
-        assertStatus(HttpStatus.BAD_REQUEST, () -> service.addReceipt(2L, new ReceiptRequest(0, today, today, today, null)));
+        assertStatus(HttpStatus.BAD_REQUEST, () -> service.addReceipt(1L, new ReceiptRequest(1, today, today, today, null, null)));
+        assertStatus(HttpStatus.BAD_REQUEST, () -> service.addReceipt(3L, new ReceiptRequest(1, today.plusDays(1), today, today, null, null)));
+        assertStatus(HttpStatus.BAD_REQUEST, () -> service.addReceipt(2L, new ReceiptRequest(1, today, today, today.minusDays(1), null, null)));
+        assertStatus(HttpStatus.BAD_REQUEST, () -> service.addReceipt(2L, new ReceiptRequest(1, today, null, today, null, null)));
+        assertStatus(HttpStatus.BAD_REQUEST, () -> service.addReceipt(3L, new ReceiptRequest(null, today, today, today, null, null)));
+        assertStatus(HttpStatus.BAD_REQUEST, () -> service.addReceipt(2L, new ReceiptRequest(0, today, today, today, null, null)));
         verify(receipts, never()).save(any());
     }
 
     @Test
     void aMonthlyNeedsNoNumberAndMayBeDatedAhead() {
         LocalDate later = LocalDate.now().plusMonths(1);
-        var receipt = service.addReceipt(2L, new ReceiptRequest(null, later, later.withDayOfMonth(1), later.withDayOfMonth(later.lengthOfMonth()), null));
+        var receipt = service.addReceipt(2L, new ReceiptRequest(null, later, later.withDayOfMonth(1), later.withDayOfMonth(later.lengthOfMonth()), null, null));
         assertNull(receipt.issueNo());
         assertEquals(later, receipt.receivedOn());
+    }
+
+    @Test
+    void textWrittenInPlaceOfTheNumberIsKeptAsWritten() {
+        Periodical indiaToday = periodical(3L, "India Today", PeriodicalFrequency.WEEKLY, "60.00", true);
+        when(periodicals.findById(3L)).thenReturn(Optional.of(indiaToday));
+        LocalDate day = LocalDate.of(2026, 10, 5);
+        var receipt = service.addReceipt(3L, new ReceiptRequest(null, day, day, day.plusDays(13), null, "  जोडअंक "));
+        assertEquals("जोडअंक", receipt.issueLabel());
+        assertNull(receipt.issueNo());
+        assertStatus(HttpStatus.BAD_REQUEST, () -> service.addReceipt(3L, new ReceiptRequest(null, day, day, day, null, "x".repeat(31))));
     }
 
     @Test

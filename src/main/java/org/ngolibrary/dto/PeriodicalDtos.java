@@ -24,14 +24,14 @@ public final class PeriodicalDtos {
     /**
      * A magazine issue: its number (अंक) and dates. Monthly: the published date (from = to = that day).
      * Weekly/fortnightly: the from–to dates it covers. receivedOn is the published date or the week's start.
-     * copies: how many of the issue came (null = 1).
+     * copies: how many of the issue came (null = 1). issueLabel: text written instead of a number (e.g. जोडअंक).
      */
     public record ReceiptRequest(Integer issueNo, LocalDate receivedOn, LocalDate periodFrom, LocalDate periodTo,
-                                 Integer copies) {
+                                 Integer copies, String issueLabel) {
     }
 
     public record ReceiptView(Long id, Integer issueNo, LocalDate receivedOn, LocalDate periodFrom, LocalDate periodTo,
-                              int copies) {
+                              int copies, String issueLabel) {
     }
 
     /** One weekly/fortnightly/monthly magazine with its subscription year and every issue received. */
