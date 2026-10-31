@@ -8,6 +8,7 @@ import org.ngolibrary.dto.RegistrationRequest;
 import org.ngolibrary.repo.UserAccountRepository;
 import org.ngolibrary.security.AppUserPrincipal;
 import org.ngolibrary.security.JwtService;
+import org.ngolibrary.security.LoginThrottle;
 import org.springframework.security.core.Authentication;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -20,19 +21,23 @@ public class AuthService {
     private final UserAccountRepository users;
     private final PasswordEncoder encoder;
     private final JwtService jwtService;
+    private final LoginThrottle throttle;
 
-    public AuthService(UserAccountRepository users, PasswordEncoder encoder, JwtService jwtService) {
+    public AuthService(UserAccountRepository users, PasswordEncoder encoder, JwtService jwtService, LoginThrottle throttle) {
         this.users = users;
         this.encoder = encoder;
         this.jwtService = jwtService;
+        this.throttle = throttle;
     }
 
     public AuthResponse login(LoginRequest request) {
-        UserAccount user = users.findByUsername(request.getUsername())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid username or password"));
-        if (!user.isActive() || !encoder.matches(request.getPassword(), user.getPassword())) {
+        throttle.check(request.getUsername());
+        UserAccount user = users.findByUsername(request.getUsername()).orElse(null);
+        if (user == null || !user.isActive() || !encoder.matches(request.getPassword(), user.getPassword())) {
+            throttle.failed(request.getUsername());
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid username or password");
         }
+        throttle.succeeded(request.getUsername());
         return new AuthResponse(jwtService.generate(user), user.getId(), user.getUsername(),
                 user.getFullName(), user.getRole());
     }
